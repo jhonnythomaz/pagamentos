@@ -1,12 +1,12 @@
 
-export enum TransactionType {
-  INCOME = 'income',
-  EXPENSE = 'expense',
-}
-
 export enum AccountCategory {
   RECURRING = 'recurring',
   NON_RECURRING = 'non_recurring',
+}
+
+export enum TransactionStatus {
+  PAID = 'paid',
+  PENDING = 'pending',
 }
 
 export interface Transaction {
@@ -14,9 +14,9 @@ export interface Transaction {
   description: string;
   amount: number;
   date: string; // ISO string format
-  type: TransactionType;
   category: string;
   accountType: AccountCategory;
+  status: TransactionStatus; // All transactions are expenses, so status is mandatory
   installments?: {
     current: number;
     total: number;
@@ -30,4 +30,5 @@ export enum View {
   DASHBOARD = 'dashboard',
   TRANSACTIONS = 'transactions',
   REPORTS = 'reports',
+  ACCOUNTS_DUE = 'accounts_due',
 }
