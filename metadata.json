@@ -1,0 +1,5 @@
+{
+  "name": "Organizador de Pagamentos",
+  "description": "Uma aplicação de gerenciamento financeiro para rastrear receitas, despesas e gerar relatórios. Este protótipo ajuda a visualizar transações, gerenciar parcelamentos e categorizar contas para um melhor planejamento financeiro.",
+  "requestFramePermissions": []
+}
