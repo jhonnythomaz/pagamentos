@@ -32,3 +32,9 @@ export enum View {
   REPORTS = 'reports',
   ACCOUNTS_DUE = 'accounts_due',
 }
+
+export type ToastMessage = {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info';
+};

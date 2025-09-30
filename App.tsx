@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Transaction, NewTransaction, View, TransactionStatus } from './types';
+import { Transaction, NewTransaction, View, TransactionStatus, ToastMessage } from './types';
 import * as api from './services/api';
 import Dashboard from './components/Dashboard';
 import TransactionsView from './components/TransactionsView';
 import ReportsView from './components/ReportsView';
 import AccountsDueView from './components/AccountsDueView';
 import { DashboardIcon, TransactionsIcon, ReportsIcon, CalendarIcon, LogoIcon } from './components/Icons';
+import ToastContainer from './components/ToastContainer';
 
 export type FiltersState = {
     id?: string;
@@ -63,6 +64,18 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [initialFilters, setInitialFilters] = useState<Partial<FiltersState> | null>(null);
+    const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+    const addToast = (message: string, type: ToastMessage['type']) => {
+        setToasts(prevToasts => [
+            ...prevToasts,
+            { id: Date.now(), message, type },
+        ]);
+    };
+
+    const removeToast = (id: number) => {
+        setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
+    };
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
@@ -76,6 +89,7 @@ const App: React.FC = () => {
             setCategories(catData.sort());
         } catch (err) {
             setError('Falha ao buscar dados. Por favor, tente novamente mais tarde.');
+            addToast('Falha ao buscar dados.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -84,17 +98,54 @@ const App: React.FC = () => {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    const createNextInstallment = async (paidTransaction: Transaction) => {
+        if (
+            paidTransaction.installments &&
+            paidTransaction.installments.current < paidTransaction.installments.total
+        ) {
+            const nextInstallmentDate = new Date(paidTransaction.date);
+            nextInstallmentDate.setMonth(nextInstallmentDate.getMonth() + 1);
+
+            const nextInstallment: NewTransaction = {
+                description: paidTransaction.description,
+                amount: paidTransaction.amount,
+                category: paidTransaction.category,
+                accountType: paidTransaction.accountType,
+                date: nextInstallmentDate.toISOString(),
+                status: TransactionStatus.PENDING,
+                installments: {
+                    current: paidTransaction.installments.current + 1,
+                    total: paidTransaction.installments.total,
+                },
+            };
+            
+            await api.addTransaction(nextInstallment);
+            addToast(`Próxima parcela (${nextInstallment.installments.current}/${nextInstallment.installments.total}) criada.`, 'info');
+        }
+    };
     
     const handleSaveTransaction = async (transaction: NewTransaction | (Partial<NewTransaction> & { id: string })) => {
         try {
             if ('id' in transaction) {
+                const originalTransaction = transactions.find(t => t.id === transaction.id);
                 await api.updateTransaction(transaction.id, transaction);
+                addToast('Pagamento atualizado com sucesso!', 'success');
+                
+                if (
+                    originalTransaction &&
+                    originalTransaction.status === TransactionStatus.PENDING &&
+                    transaction.status === TransactionStatus.PAID
+                ) {
+                    await createNextInstallment({ ...originalTransaction, ...transaction } as Transaction);
+                }
             } else {
                 await api.addTransaction(transaction);
+                addToast('Pagamento criado com sucesso!', 'success');
             }
             fetchData();
         } catch (err) {
-            setError('Falha ao salvar pagamento.');
+            addToast('Falha ao salvar pagamento.', 'error');
         }
     };
     
@@ -102,19 +153,27 @@ const App: React.FC = () => {
         if (window.confirm('Você tem certeza que quer deletar este pagamento?')) {
             try {
                 await api.deleteTransaction(id);
+                addToast('Pagamento deletado.', 'info');
                 fetchData();
             } catch (err) {
-                setError('Falha ao deletar pagamento.');
+                addToast('Falha ao deletar pagamento.', 'error');
             }
         }
     };
 
     const handleMarkAsPaid = async (id: string) => {
         try {
+            const transactionToPay = transactions.find(t => t.id === id);
+            if (!transactionToPay) throw new Error("Transaction not found");
+
             await api.updateTransaction(id, { status: TransactionStatus.PAID });
+            addToast('Conta marcada como paga!', 'success');
+            
+            await createNextInstallment(transactionToPay);
+            
             fetchData();
         } catch (err) {
-            setError('Falha ao marcar a conta como paga.');
+            addToast('Falha ao marcar a conta como paga.', 'error');
         }
     };
 
@@ -130,7 +189,7 @@ const App: React.FC = () => {
 
     const renderContent = () => {
         if (isLoading) return <div className="flex justify-center items-center h-full"><p className="text-xl text-slate-500">Carregando...</p></div>;
-        if (error) return <div className="flex justify-center items-center h-full"><p className="text-xl text-danger">{error}</p></div>;
+        if (error && transactions.length === 0) return <div className="flex justify-center items-center h-full"><p className="text-xl text-danger">{error}</p></div>;
 
         switch (view) {
             case View.DASHBOARD:
@@ -159,6 +218,7 @@ const App: React.FC = () => {
             <main className="flex-1 overflow-y-auto">
                 {renderContent()}
             </main>
+            <ToastContainer messages={toasts} onDismiss={removeToast} />
         </div>
     );
 };

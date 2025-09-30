@@ -8,7 +8,9 @@ interface DashboardProps {
   setView: (view: View) => void;
 }
 
-const StatCard: React.FC<{ title: string; amount: number; icon: React.ReactElement; color: string; onClick?: () => void; }> = ({ title, amount, icon, color, onClick }) => (
+// FIX: Correctly typed the icon prop to be a React.ReactElement that accepts a className.
+// This allows passing the className prop via React.cloneElement and resolves the TypeScript error.
+const StatCard: React.FC<{ title: string; amount: number; icon: React.ReactElement<{ className?: string }>; color: string; onClick?: () => void; }> = ({ title, amount, icon, color, onClick }) => (
     <div onClick={onClick} className={`bg-white p-6 rounded-xl shadow-card ${onClick ? 'cursor-pointer hover:shadow-lg hover:border-primary/20 transition-all' : ''}`}>
         <div className="flex justify-between items-start">
             <div className="flex flex-col">
@@ -18,7 +20,6 @@ const StatCard: React.FC<{ title: string; amount: number; icon: React.ReactEleme
                 </p>
             </div>
             <div className={`p-3 rounded-full ${color.replace('text-', 'bg-').replace('danger', 'danger/light').replace('warning', 'warning/light').replace('success', 'success/light')}`}>
-                 {/* FIX: Correctly type the icon prop and use React.cloneElement to pass down props. The original type React.ReactNode was too broad, causing a type error. */}
                  {React.cloneElement(icon, { className: `w-6 h-6 ${color}` })}
             </div>
         </div>

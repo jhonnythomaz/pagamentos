@@ -12,6 +12,8 @@ interface TransactionsViewProps {
   onInitialFiltersApplied?: () => void;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const StatusIndicator: React.FC<{ status: TransactionStatus }> = ({ status }) => {
     const statusConfig = {
         [TransactionStatus.PAID]: { label: 'Pago', color: 'bg-success' },
@@ -63,6 +65,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
         startDate: '',
         endDate: '',
     });
+    const [currentPage, setCurrentPage] = useState(1);
     
      useEffect(() => {
         if (initialFilters) {
@@ -75,6 +78,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
                 endDate: '',
             };
             setFilters({ ...defaultFilters, ...initialFilters });
+            setCurrentPage(1);
             if (onInitialFiltersApplied) {
                 onInitialFiltersApplied();
             }
@@ -104,6 +108,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
             ...prevFilters,
             [name]: value,
         }));
+        setCurrentPage(1);
     };
 
     const handleClearFilters = () => {
@@ -113,8 +118,9 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
             accountType: 'all',
             status: 'all',
             startDate: '',
-endDate: '',
+            endDate: '',
         });
+        setCurrentPage(1);
     };
 
     const filteredTransactions = useMemo(() => {
@@ -131,6 +137,23 @@ endDate: '',
             return descriptionMatch && categoryMatch && accountTypeMatch && statusMatch && startDateMatch && endDateMatch;
         });
     }, [transactions, filters]);
+
+    const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+
+    const paginatedTransactions = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        return filteredTransactions.slice(startIndex, endIndex);
+    }, [filteredTransactions, currentPage]);
+    
+    const handlePrevPage = () => {
+        setCurrentPage(prev => Math.max(prev - 1, 1));
+    };
+
+    const handleNextPage = () => {
+        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    };
+
 
     const totalExpenses = useMemo(() => {
         return filteredTransactions.reduce((acc, t) => acc + t.amount, 0);
@@ -237,7 +260,8 @@ endDate: '',
                 </div>
             </div>
 
-            {filteredTransactions.length > 0 ?
+            {filteredTransactions.length > 0 ? (
+                <>
                 <div className="bg-white rounded-xl shadow-card overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="min-w-full bg-white">
@@ -254,14 +278,26 @@ endDate: '',
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                                {filteredTransactions.map(transaction => (
+                                {paginatedTransactions.map(transaction => (
                                     <TransactionRow key={transaction.id} transaction={transaction} onEdit={handleOpenModal} onDelete={onDelete} />
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 </div>
-            : (
+                 <div className="flex justify-between items-center mt-6">
+                    <button onClick={handlePrevPage} disabled={currentPage === 1} className="bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Anterior
+                    </button>
+                    <span className="text-sm text-slate-500">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <button onClick={handleNextPage} disabled={currentPage === totalPages} className="bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Próxima
+                    </button>
+                </div>
+                </>
+            ) : (
                 <div className="text-center py-16 bg-white rounded-xl shadow-card">
                     {transactions.length > 0 ? (
                         <>
