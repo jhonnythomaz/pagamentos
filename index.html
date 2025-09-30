@@ -18,14 +18,14 @@
             },
             colors: {
               primary: {
-                DEFAULT: '#2563eb', // blue-600
-                hover: '#1d4ed8', // blue-700
-                light: '#dbeafe', // blue-100
-                dark: '#1e40af', // blue-800
+                DEFAULT: 'hsl(221, 83%, 53%)', // Indigo 500
+                hover: 'hsl(221, 83%, 48%)',
+                light: 'hsl(221, 83%, 95%)',
+                dark: 'hsl(221, 83%, 30%)',
               },
-              danger: '#dc2626',
-              success: '#16a34a',
-              warning: '#f59e0b',
+              danger: { DEFAULT: 'hsl(0, 72%, 51%)', light: 'hsl(0, 72%, 95%)', dark: 'hsl(0, 72%, 80%)' }, // Red 600
+              success: { DEFAULT: 'hsl(142, 69%, 45%)', light: 'hsl(142, 69%, 95%)', dark: 'hsl(142, 69%, 80%)' }, // Green 600
+              warning: { DEFAULT: 'hsl(38, 92%, 50%)', light: 'hsl(38, 92%, 95%)', dark: 'hsl(38, 92%, 80%)' }, // Amber 500
               slate: {
                 50: '#f8fafc',
                 100: '#f1f5f9',
@@ -39,6 +39,9 @@
                 900: '#0f172a',
               },
             },
+            boxShadow: {
+                'card': '0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07)',
+            }
           },
         },
       }
@@ -54,7 +57,7 @@
 }
 </script>
 </head>
-  <body class="h-full bg-slate-100">
+  <body class="h-full bg-slate-50">
     <div id="root" class="h-full"></div>
   </body>
 </html>

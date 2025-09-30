@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Transaction, NewTransaction, AccountCategory, TransactionStatus } from '../types';
-import { PencilIcon, TrashIcon, PlusIcon, DownloadIcon } from './Icons';
+import { PencilIcon, TrashIcon, PlusIcon, DownloadIcon, SearchIcon, ClipboardListIcon } from './Icons';
 import TransactionModal from './TransactionModal';
 
 interface TransactionsViewProps {
@@ -8,29 +8,40 @@ interface TransactionsViewProps {
   categories: string[];
   onSave: (transaction: NewTransaction | (Partial<NewTransaction> & { id: string })) => void;
   onDelete: (id: string) => void;
+  initialFilters?: any | null;
+  onInitialFiltersApplied?: () => void;
 }
+
+const StatusIndicator: React.FC<{ status: TransactionStatus }> = ({ status }) => {
+    const statusConfig = {
+        [TransactionStatus.PAID]: { label: 'Pago', color: 'bg-success' },
+        [TransactionStatus.PENDING]: { label: 'Pendente', color: 'bg-warning' },
+    };
+    const { label, color } = statusConfig[status] || { label: 'N/A', color: 'bg-slate-400' };
+
+    return (
+        <div className="flex items-center justify-center">
+            <span className={`h-2 w-2 rounded-full ${color} mr-2`}></span>
+            <span className="text-sm text-slate-700">{label}</span>
+        </div>
+    );
+};
 
 const TransactionRow: React.FC<{ transaction: Transaction; onEdit: (t: Transaction) => void; onDelete: (id: string) => void; }> = ({ transaction, onEdit, onDelete }) => {
     const formattedAmount = transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const accountTypeLabel = transaction.accountType === AccountCategory.RECURRING ? 'Recorrente' : 'Não Recorrente';
     
-    const statusLabel = transaction.status === TransactionStatus.PENDING ? 'Pendente' : 'Pago';
-    const statusColor = transaction.status === TransactionStatus.PENDING 
-        ? 'bg-amber-100 text-amber-800' 
-        : 'bg-emerald-100 text-emerald-800';
-
-
     return (
-        <tr className="border-b border-slate-200 hover:bg-slate-50">
-            <td className="py-4 px-6 text-sm text-slate-700">{new Date(transaction.date).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', year: 'numeric'})}</td>
-            <td className="py-4 px-6 text-sm font-medium text-slate-900">{transaction.description}</td>
-            <td className="py-4 px-6 text-sm text-slate-700">{transaction.category}</td>
-            <td className="py-4 px-6 text-sm text-center text-slate-700">{accountTypeLabel}</td>
+        <tr className="border-b border-slate-200 hover:bg-slate-50/50">
+            <td className="py-4 px-6 text-sm text-slate-600">{new Date(transaction.date).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', year: 'numeric'})}</td>
+            <td className="py-4 px-6 text-sm font-medium text-slate-800">{transaction.description}</td>
+            <td className="py-4 px-6 text-sm text-slate-600">{transaction.category}</td>
+            <td className="py-4 px-6 text-sm text-center text-slate-600">{accountTypeLabel}</td>
             <td className={`py-4 px-6 text-sm text-right font-semibold text-slate-800`}>- R$ {formattedAmount}</td>
             <td className="py-4 px-6 text-sm text-center">
-                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusColor}`}>{statusLabel}</span>
+                <StatusIndicator status={transaction.status} />
             </td>
-            <td className="py-4 px-6 text-sm text-center text-slate-700">{transaction.installments ? `${transaction.installments.current}/${transaction.installments.total}` : '-'}</td>
+            <td className="py-4 px-6 text-sm text-center text-slate-600">{transaction.installments ? `${transaction.installments.current}/${transaction.installments.total}` : '-'}</td>
             <td className="py-4 px-6 text-center">
                 <div className="flex item-center justify-center gap-2">
                     <button onClick={() => onEdit(transaction)} className="text-slate-500 hover:text-primary transition-colors"><PencilIcon className="w-4 h-4" /></button>
@@ -41,7 +52,7 @@ const TransactionRow: React.FC<{ transaction: Transaction; onEdit: (t: Transacti
     );
 };
 
-const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categories, onSave, onDelete }) => {
+const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categories, onSave, onDelete, initialFilters, onInitialFiltersApplied }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
     const [filters, setFilters] = useState({
@@ -53,7 +64,24 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
         endDate: '',
     });
     
-    const inputStyles = "mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary";
+     useEffect(() => {
+        if (initialFilters) {
+            const defaultFilters = {
+                description: '',
+                category: 'all',
+                accountType: 'all',
+                status: 'all',
+                startDate: '',
+                endDate: '',
+            };
+            setFilters({ ...defaultFilters, ...initialFilters });
+            if (onInitialFiltersApplied) {
+                onInitialFiltersApplied();
+            }
+        }
+    }, [initialFilters, onInitialFiltersApplied]);
+
+    const inputStyles = "block w-full border border-slate-300 rounded-lg shadow-sm py-2.5 px-3 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition";
 
     const handleOpenModal = (transaction: Transaction | null) => {
         setTransactionToEdit(transaction);
@@ -85,7 +113,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
             accountType: 'all',
             status: 'all',
             startDate: '',
-            endDate: '',
+endDate: '',
         });
     };
 
@@ -145,102 +173,111 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h1 className="text-3xl font-bold text-slate-800">Pagamentos</h1>
-                <button onClick={() => handleOpenModal(null)} className="bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 shrink-0 shadow-sm">
+                <button onClick={() => handleOpenModal(null)} className="bg-primary text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 shrink-0 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark">
                     <PlusIcon />
                     Novo Pagamento
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-6">
-                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 className="text-sm font-medium text-slate-500">Despesas no Período</h3>
-                    <p className="text-3xl font-bold mt-2 text-danger">
-                        {totalExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </p>
-                </div>
-            </div>
+            <div className="bg-white p-6 rounded-xl shadow-card">
+                 <h3 className="text-base font-medium text-slate-500">Despesas no Período</h3>
+                 <p className="text-3xl font-bold mt-2 text-danger">
+                     {totalExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                 </p>
+             </div>
             
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    <div className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4">
-                        <label htmlFor="description" className="block text-sm font-medium text-slate-600">Descrição</label>
-                        <input type="text" name="description" id="description" value={filters.description} onChange={handleFilterChange} className={inputStyles} />
+            <div className="bg-white p-6 rounded-xl shadow-card">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5">
+                    <h3 className="text-lg font-semibold text-slate-800">Filtrar Pagamentos</h3>
+                    <div className="flex items-center gap-4 mt-2 sm:mt-0">
+                        <button onClick={handleClearFilters} className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">Limpar Filtros</button>
+                        <button onClick={handleExportCSV} className="bg-slate-700 text-white font-semibold py-2 px-3 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm">
+                            <DownloadIcon className="w-4 h-4" />
+                            Exportar
+                        </button>
                     </div>
-                    <div>
-                        <label htmlFor="category" className="block text-sm font-medium text-slate-600">Categoria</label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="col-span-1 md:col-span-2 lg:col-span-5">
+                        <label htmlFor="description" className="block text-sm font-medium text-slate-600 mb-1">Descrição</label>
+                        <input type="text" name="description" id="description" value={filters.description} onChange={handleFilterChange} className={inputStyles} placeholder="Ex: Conta de Luz, Aluguel..."/>
+                    </div>
+                    <div className="col-span-1">
+                        <label htmlFor="category" className="block text-sm font-medium text-slate-600 mb-1">Categoria</label>
                         <select name="category" id="category" value={filters.category} onChange={handleFilterChange} className={inputStyles}>
                             <option value="all">Todas</option>
                             {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
                     </div>
-                     <div>
-                        <label htmlFor="accountType" className="block text-sm font-medium text-slate-600">Tipo de Conta</label>
+                    <div className="col-span-1">
+                        <label htmlFor="accountType" className="block text-sm font-medium text-slate-600 mb-1">Tipo de Conta</label>
                         <select name="accountType" id="accountType" value={filters.accountType} onChange={handleFilterChange} className={inputStyles}>
                             <option value="all">Todos</option>
                             <option value={AccountCategory.RECURRING}>Recorrente</option>
                             <option value={AccountCategory.NON_RECURRING}>Não Recorrente</option>
                         </select>
                     </div>
-                    <div>
-                        <label htmlFor="status" className="block text-sm font-medium text-slate-600">Status</label>
+                    <div className="col-span-1">
+                        <label htmlFor="status" className="block text-sm font-medium text-slate-600 mb-1">Status</label>
                         <select name="status" id="status" value={filters.status} onChange={handleFilterChange} className={inputStyles}>
                             <option value="all">Todos</option>
                             <option value={TransactionStatus.PAID}>Pago</option>
                             <option value={TransactionStatus.PENDING}>Pendente</option>
                         </select>
                     </div>
-                     <div>
-                        <label htmlFor="startDate" className="block text-sm font-medium text-slate-600">Data Início</label>
+                    <div className="col-span-1">
+                        <label htmlFor="startDate" className="block text-sm font-medium text-slate-600 mb-1">Data Início</label>
                         <input type="date" name="startDate" id="startDate" value={filters.startDate} onChange={handleFilterChange} className={inputStyles} />
                     </div>
-                    <div className="lg:col-start-2 xl:col-start-auto">
-                        <label htmlFor="endDate" className="block text-sm font-medium text-slate-600">Data Fim</label>
+                    <div className="col-span-1">
+                        <label htmlFor="endDate" className="block text-sm font-medium text-slate-600 mb-1">Data Fim</label>
                         <input type="date" name="endDate" id="endDate" value={filters.endDate} onChange={handleFilterChange} className={inputStyles} />
                     </div>
                 </div>
-                <div className="flex flex-col sm:flex-row justify-end gap-3 mt-5 pt-5 border-t border-slate-200">
-                    <button onClick={handleClearFilters} className="bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors">Limpar Filtros</button>
-                    <button onClick={handleExportCSV} className="bg-success text-white font-semibold py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
-                        <DownloadIcon />
-                        Exportar CSV
-                    </button>
-                </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white">
-                        <thead className="bg-slate-50">
-                            <tr>
-                                <th className="py-3 px-6 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Data</th>
-                                <th className="py-3 px-6 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Descrição</th>
-                                <th className="py-3 px-6 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Categoria</th>
-                                <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo de Conta</th>
-                                <th className="py-3 px-6 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Valor</th>
-                                <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Parcelas</th>
-                                <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredTransactions.map(transaction => (
-                                <TransactionRow key={transaction.id} transaction={transaction} onEdit={handleOpenModal} onDelete={onDelete} />
-                            ))}
-                        </tbody>
-                    </table>
+            {filteredTransactions.length > 0 ?
+                <div className="bg-white rounded-xl shadow-card overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full bg-white">
+                            <thead className="bg-slate-50">
+                                <tr>
+                                    <th className="py-3 px-6 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Data</th>
+                                    <th className="py-3 px-6 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Descrição</th>
+                                    <th className="py-3 px-6 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Categoria</th>
+                                    <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo</th>
+                                    <th className="py-3 px-6 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Valor</th>
+                                    <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Parcelas</th>
+                                    <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                                {filteredTransactions.map(transaction => (
+                                    <TransactionRow key={transaction.id} transaction={transaction} onEdit={handleOpenModal} onDelete={onDelete} />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-            
-            {transactions.length > 0 && filteredTransactions.length === 0 && (
-                <div className="text-center py-10 bg-white rounded-xl border border-slate-200 shadow-sm">
-                    <p className="text-slate-500">Nenhum pagamento corresponde aos filtros selecionados.</p>
+            : (
+                <div className="text-center py-16 bg-white rounded-xl shadow-card">
+                    {transactions.length > 0 ? (
+                        <>
+                            <SearchIcon className="mx-auto h-12 w-12 text-slate-400" />
+                            <h3 className="mt-4 text-lg font-semibold text-slate-800">Nenhum Resultado Encontrado</h3>
+                            <p className="mt-2 text-sm text-slate-500">Tente ajustar seus filtros para encontrar o que procura.</p>
+                        </>
+                    ) : (
+                         <>
+                            <ClipboardListIcon className="mx-auto h-12 w-12 text-slate-400" />
+                            <h3 className="mt-4 text-lg font-semibold text-slate-800">Nenhum Pagamento Adicionado</h3>
+                            <p className="mt-2 text-sm text-slate-500">Comece adicionando seu primeiro pagamento para vê-lo aqui.</p>
+                         </>
+                    )}
                 </div>
             )}
-            {transactions.length === 0 && 
-                <div className="text-center py-10 bg-white rounded-xl border border-slate-200 shadow-sm">
-                    <p className="text-slate-500">Nenhum pagamento encontrado.</p>
-                </div>
-            }
             
             <TransactionModal 
                 isOpen={isModalOpen} 
