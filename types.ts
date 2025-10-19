@@ -31,6 +31,7 @@ export enum View {
   TRANSACTIONS = 'transactions',
   REPORTS = 'reports',
   ACCOUNTS_DUE = 'accounts_due',
+  CALENDAR = 'calendar',
 }
 
 export type ToastMessage = {

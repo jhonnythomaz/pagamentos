@@ -25,7 +25,7 @@ const Toast: React.FC<ToastProps> = ({ message, onDismiss }) => {
   }, [message.id, onDismiss]);
 
   return (
-    <div className="bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in-right w-full max-w-sm">
+    <div className="bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in-right max-w-sm">
       <div className="p-4">
         <div className="flex items-start">
           <div className="flex-shrink-0">
