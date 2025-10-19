@@ -6,7 +6,8 @@ import Dashboard from './components/Dashboard';
 import TransactionsView from './components/TransactionsView';
 import ReportsView from './components/ReportsView';
 import AccountsDueView from './components/AccountsDueView';
-import { DashboardIcon, TransactionsIcon, ReportsIcon, CalendarIcon, LogoIcon } from './components/Icons';
+import CalendarView from './components/CalendarView';
+import { DashboardIcon, TransactionsIcon, ReportsIcon, CalendarIcon, LogoIcon, DocumentTextIcon } from './components/Icons';
 import ToastContainer from './components/ToastContainer';
 
 export type FiltersState = {
@@ -23,7 +24,8 @@ const Sidebar: React.FC<{ activeView: View; setView: (view: View) => void }> = (
     const navItems = [
         { id: View.DASHBOARD, label: 'Painel', icon: <DashboardIcon /> },
         { id: View.TRANSACTIONS, label: 'Pagamentos', icon: <TransactionsIcon /> },
-        { id: View.ACCOUNTS_DUE, label: 'Contas a Vencer', icon: <CalendarIcon /> },
+        { id: View.CALENDAR, label: 'Calendário', icon: <CalendarIcon /> },
+        { id: View.ACCOUNTS_DUE, label: 'Contas a Vencer', icon: <DocumentTextIcon /> },
         { id: View.REPORTS, label: 'Relatórios', icon: <ReportsIcon /> },
     ];
 
@@ -217,6 +219,8 @@ const App: React.FC = () => {
                             initialFilters={initialFilters}
                             onInitialFiltersApplied={() => setInitialFilters(null)}
                        />;
+            case View.CALENDAR:
+                return <CalendarView transactions={transactions} />;
             case View.REPORTS:
                 return <ReportsView transactions={transactions} />;
             case View.ACCOUNTS_DUE:
