@@ -1,0 +1,5 @@
+{
+  "name": "Organizador de Pagamentos",
+  "description": "Uma aplicação de gerenciamento financeiro focada no controle de pagamentos e despesas. Ajuda a visualizar o que está pago, a vencer e vencido, categorizar contas e gerar relatórios de gastos.",
+  "requestFramePermissions": []
+}
