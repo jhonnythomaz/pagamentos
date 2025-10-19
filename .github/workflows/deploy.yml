@@ -10,13 +10,20 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
+# Define as permissões necessárias para o deploy
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Define o job de build e deploy
 jobs:
   build-and-deploy:
+    # Define o ambiente de deploy para o GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 🛎️
