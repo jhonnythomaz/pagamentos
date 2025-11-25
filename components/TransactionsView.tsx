@@ -1,17 +1,17 @@
+
 // components/TransactionsView.tsx
 import React, { useState, useMemo } from 'react';
-import { Transaction, TransactionStatus, AccountType, TransactionCategory } from '../types';
+import { Transaction, TransactionCategory } from '../types';
 import { PlusIcon, PencilIcon, TrashIcon, SearchIcon, DownloadIcon } from './Icons';
 
 interface TransactionsViewProps {
   transactions: Transaction[];
+  categories: string[];
   onEditTransaction: (transaction: Transaction | null) => void;
   onDelete: (id: string) => Promise<void>;
 }
 
-const categories: TransactionCategory[] = ['Moradia', 'Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Serviços', 'Impostos', 'Eletrônicos', 'Outros'];
-
-const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, onEditTransaction, onDelete }) => {
+const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categories, onEditTransaction, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [accountTypeFilter, setAccountTypeFilter] = useState('all');
@@ -49,9 +49,9 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, onEdi
   const getStatusChip = (status: 'Pago' | 'Pendente') => {
       const baseClasses = "px-2.5 py-0.5 text-xs font-semibold rounded-full inline-block";
       if (status === 'Pago') {
-          return <span className={`${baseClasses} bg-success/20 text-success`}>Pago</span>
+          return <span className={`${baseClasses} bg-success/20 text-success dark:text-success-light`}>Pago</span>
       }
-      return <span className={`${baseClasses} bg-warning/20 text-yellow-800`}>Pendente</span>
+      return <span className={`${baseClasses} bg-warning/20 text-yellow-800 dark:text-warning`}>Pendente</span>
   }
   
   const handleExportCSV = () => {
@@ -78,16 +78,16 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, onEdi
         document.body.removeChild(link);
   };
 
-  const selectStyles = "block w-full border border-slate-300 rounded-lg shadow-sm py-2.5 px-3 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition";
+  const selectStyles = "block w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg shadow-sm py-2.5 px-3 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition-colors";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-        <h1 className="text-3xl font-bold text-slate-800">Meus Pagamentos</h1>
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-white transition-colors">Meus Pagamentos</h1>
         <div className="flex w-full sm:w-auto items-center gap-2">
             <button
                 onClick={handleExportCSV}
-                className="bg-white border border-slate-300 text-slate-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 shrink-0 shadow-sm"
+                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-2.5 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 shrink-0 shadow-sm"
             >
                 <DownloadIcon />
             </button>
@@ -109,7 +109,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, onEdi
                     placeholder="Pesquisar..."
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                    className="block w-full border border-slate-300 rounded-lg shadow-sm py-2.5 pl-10 pr-3 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition"
+                    className="block w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg shadow-sm py-2.5 pl-10 pr-3 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition-colors"
                 />
             </div>
             <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }} className={selectStyles}>
@@ -128,10 +128,10 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, onEdi
             </select>
       </div>
 
-      <div className="bg-white rounded-xl shadow-card overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-card overflow-hidden border border-slate-100 dark:border-slate-800 transition-colors">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-slate-500">
-            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+          <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+            <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800/50">
               <tr>
                 <th scope="col" className="px-6 py-3">Descrição</th>
                 <th scope="col" className="px-6 py-3">Valor</th>
@@ -144,12 +144,12 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, onEdi
             </thead>
             <tbody>
               {paginatedTransactions.map((t) => (
-                <tr key={t.id} className="bg-white border-b hover:bg-slate-50">
-                  <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                <tr key={t.id} className="bg-white dark:bg-slate-900 border-b dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
                     <div>{t.description}</div>
-                    <div className="text-xs text-slate-500">{t.category}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{t.category}</div>
                   </td>
-                  <td className={`px-6 py-4 font-semibold text-danger`}>
+                  <td className={`px-6 py-4 font-semibold text-danger dark:text-danger-light`}>
                     {currencyFormatter(t.amount)}
                   </td>
                   <td className="px-6 py-4">{getStatusChip(t.status)}</td>
@@ -157,8 +157,8 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, onEdi
                   <td className="px-6 py-4">{t.accountType}</td>
                   <td className="px-6 py-4">{t.installments || '-'}</td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => onEditTransaction(t)} className="text-primary hover:text-primary-hover mr-4"><PencilIcon /></button>
-                    <button onClick={() => handleDelete(t.id)} className="text-danger hover:text-danger-hover"><TrashIcon /></button>
+                    <button onClick={() => onEditTransaction(t)} className="text-primary hover:text-primary-hover dark:text-primary-light mr-4"><PencilIcon /></button>
+                    <button onClick={() => handleDelete(t.id)} className="text-danger hover:text-danger-hover dark:text-danger-light"><TrashIcon /></button>
                   </td>
                 </tr>
               ))}
@@ -166,20 +166,20 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, onEdi
           </table>
         </div>
         {filteredTransactions.length === 0 && (
-            <div className="text-center py-16 text-slate-500">
+            <div className="text-center py-16 text-slate-500 dark:text-slate-400">
                  <p>Nenhum pagamento encontrado para os filtros selecionados.</p>
             </div>
         )}
         {totalPages > 1 && (
-            <div className="flex justify-between items-center p-4 border-t">
-                <span className="text-sm text-slate-700">
+            <div className="flex justify-between items-center p-4 border-t dark:border-slate-800">
+                <span className="text-sm text-slate-700 dark:text-slate-300">
                     Página {currentPage} de {totalPages}
                 </span>
                 <div className="flex gap-2">
-                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         Anterior
                     </button>
-                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         Próxima
                     </button>
                 </div>

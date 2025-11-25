@@ -1,5 +1,6 @@
+
 // types.ts
-export type TransactionCategory = 'Moradia' | 'Alimentação' | 'Transporte' | 'Lazer' | 'Saúde' | 'Educação' | 'Serviços' | 'Impostos' | 'Eletrônicos' | 'Outros';
+export type TransactionCategory = string;
 export type TransactionStatus = 'Pago' | 'Pendente';
 export type AccountType = 'Recorrente' | 'Não Recorrente';
 

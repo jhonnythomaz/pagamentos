@@ -1,3 +1,4 @@
+
 // components/CalendarView.tsx
 import React, { useState } from 'react';
 import { Transaction } from '../types';
@@ -53,25 +54,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({ transactions, onTransaction
   return (
     <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-800">Calendário de Pagamentos</h1>
-            <div className="flex items-center gap-4">
-                <button onClick={prevMonth} className="p-2 rounded-full hover:bg-slate-200 transition">
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-white transition-colors">Calendário de Pagamentos</h1>
+            <div className="flex items-center gap-4 text-slate-700 dark:text-slate-200">
+                <button onClick={prevMonth} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                     <ChevronLeftIcon />
                 </button>
-                <h2 className="text-xl font-semibold text-slate-700 w-40 text-center capitalize">
+                <h2 className="text-xl font-semibold w-40 text-center capitalize">
                     {currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
                 </h2>
-                <button onClick={nextMonth} className="p-2 rounded-full hover:bg-slate-200 transition">
+                <button onClick={nextMonth} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                     <ChevronRightIcon />
                 </button>
             </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-card p-6">
-            <div className="grid grid-cols-7 gap-px text-center font-semibold text-slate-600 mb-2">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-card p-6 border border-slate-100 dark:border-slate-800 transition-colors">
+            <div className="grid grid-cols-7 gap-px text-center font-semibold text-slate-600 dark:text-slate-400 mb-2">
                 {weekDays.map(wd => <div key={wd}>{wd}</div>)}
             </div>
-            <div className="grid grid-cols-7 grid-rows-6 gap-px min-h-[600px]">
+            <div className="grid grid-cols-7 grid-rows-6 gap-px min-h-[600px] bg-slate-200 dark:bg-slate-700 border border-slate-200 dark:border-slate-700">
                 {days.map((d, index) => {
                     const dateKey = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString().split('T')[0];
                     const dayTransactions = transactionsByDate[dateKey] || [];
@@ -79,11 +80,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ transactions, onTransaction
                     const isToday = d.toDateString() === new Date().toDateString();
 
                     return (
-                        <div key={index} className={`border border-slate-200 p-2 flex flex-col ${isCurrentMonth ? 'bg-white' : 'bg-slate-50'}`}>
-                            <span className={`font-semibold self-start mb-1 ${isCurrentMonth ? 'text-slate-700' : 'text-slate-400'} ${isToday ? 'bg-primary text-white rounded-full w-7 h-7 flex items-center justify-center' : ''}`}>
+                        <div key={index} className={`p-2 flex flex-col ${isCurrentMonth ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                            <span className={`font-semibold self-start mb-1 text-sm ${isCurrentMonth ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-600'} ${isToday ? 'bg-primary text-white rounded-full w-7 h-7 flex items-center justify-center' : ''}`}>
                                 {d.getDate()}
                             </span>
-                             <div className="overflow-y-auto text-xs space-y-1 flex-grow">
+                             <div className="overflow-y-auto text-xs space-y-1 flex-grow scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
                                 {dayTransactions.map(t => {
                                     let colorClasses = '';
                                     const dueDate = new Date(t.dueDate);
@@ -91,18 +92,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({ transactions, onTransaction
                                     const isOverdue = dueDate < today;
 
                                     if(t.status === 'Pago') {
-                                        colorClasses = 'bg-slate-200 text-slate-600 hover:bg-slate-300';
+                                        colorClasses = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700';
                                     } else if (t.status === 'Pendente' && isOverdue) {
-                                        colorClasses = 'bg-danger/20 text-danger font-semibold hover:bg-danger/30';
+                                        colorClasses = 'bg-danger/10 dark:bg-danger/20 text-danger dark:text-danger-light font-semibold hover:bg-danger/20 dark:hover:bg-danger/30';
                                     } else { // Pendente a vencer
-                                        colorClasses = 'bg-warning/20 text-yellow-800 hover:bg-warning/30';
+                                        colorClasses = 'bg-warning/10 dark:bg-warning/20 text-yellow-800 dark:text-warning hover:bg-warning/20 dark:hover:bg-warning/30';
                                     }
                                     
                                     return (
                                         <div 
                                           key={t.id} 
                                           onClick={() => onTransactionClick(t)}
-                                          className={`p-1 rounded cursor-pointer transition-colors ${colorClasses}`}
+                                          className={`p-1.5 rounded cursor-pointer transition-colors ${colorClasses}`}
                                         >
                                             <p className="truncate font-medium">{t.description}</p>
                                         </div>

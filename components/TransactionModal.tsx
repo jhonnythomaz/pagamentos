@@ -1,3 +1,4 @@
+
 // components/TransactionModal.tsx
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionCategory, TransactionStatus, AccountType, NewTransaction } from '../types';
@@ -5,15 +6,25 @@ import { CloseIcon } from './Icons';
 
 interface TransactionModalProps {
   transaction: Transaction | null;
+  categories: string[];
   onClose: () => void;
-  onSave: (transactionData: Transaction | NewTransaction, isNew: boolean) => void;
+  onSave: (transactionData: Transaction | NewTransaction | NewTransaction[], isNew: boolean) => void;
 }
 
-const categories: TransactionCategory[] = ['Moradia', 'Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Serviços', 'Impostos', 'Eletrônicos', 'Outros'];
 const statuses: TransactionStatus[] = ['Pendente', 'Pago'];
 const accountTypes: AccountType[] = ['Recorrente', 'Não Recorrente'];
 
-const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onClose, onSave }) => {
+const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, categories, onClose, onSave }) => {
+    // Helper to extract installment numbers
+    const parseInstallments = (str?: string) => {
+        if (!str) return { current: 1, total: 1 };
+        const parts = str.split('/');
+        return {
+            current: parseInt(parts[0]) || 1,
+            total: parseInt(parts[1]) || 1
+        };
+    };
+
     const getInitialFormData = () => {
         const today = new Date().toISOString().split('T')[0];
         return {
@@ -21,10 +32,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onClos
             amount: 0,
             date: today, // Data de Pagamento
             dueDate: today, // Data de Vencimento
-            category: 'Outros' as TransactionCategory,
+            category: categories[0] || 'Outros',
             status: 'Pendente' as TransactionStatus,
             accountType: 'Não Recorrente' as AccountType,
-            installments: '',
+            installmentCurrent: 1,
+            installmentTotal: 1,
+            generateFuture: false,
         };
     };
 
@@ -33,6 +46,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onClos
 
     useEffect(() => {
         if (transaction) {
+            const { current, total } = parseInstallments(transaction.installments);
             setFormData({
                 description: transaction.description,
                 amount: transaction.amount,
@@ -41,16 +55,17 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onClos
                 category: transaction.category,
                 status: transaction.status,
                 accountType: transaction.accountType,
-                installments: transaction.installments || '',
+                installmentCurrent: current,
+                installmentTotal: total,
+                generateFuture: false,
             });
         } else {
             setFormData(getInitialFormData());
         }
-    }, [transaction]);
+    }, [transaction, categories]);
     
     // Efeito para ajustar a data de pagamento quando o status muda para "Pago"
     useEffect(() => {
-        // Se o status for alterado para 'Pago' E (é uma nova transação OU a transação existente era 'Pendente')
         if (formData.status === 'Pago' && (isNew || (transaction && transaction.status === 'Pendente'))) {
             const today = new Date().toISOString().split('T')[0];
             setFormData(prev => ({ ...prev, date: today }));
@@ -59,13 +74,38 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onClos
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
+        
+        let val: any = value;
+        if (type === 'checkbox') {
+            val = (e.target as HTMLInputElement).checked;
+        } else if (name === 'amount' || name === 'installmentCurrent' || name === 'installmentTotal') {
+            val = parseFloat(value) || 0;
+        }
+
         setFormData(prev => ({
             ...prev,
-            [name]: name === 'amount' ? parseFloat(value) || 0 : value
+            [name]: val
         }));
     };
     
+    // Helper para adicionar meses corretamente (ex: 31 Jan + 1 mês = 28/29 Fev)
+    const addMonths = (dateStr: string, months: number): string => {
+        const date = new Date(dateStr);
+        // Ajuste para fuso horário UTC para evitar problemas de dia
+        const d = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+        
+        const originalDay = d.getDate();
+        d.setMonth(d.getMonth() + months);
+        
+        // Se o dia mudou (ex: era 31, virou 1, 2 ou 3), significa que o mês destino tem menos dias
+        // Então voltamos para o último dia do mês anterior
+        if (d.getDate() !== originalDay) {
+            d.setDate(0);
+        }
+        return d.toISOString().split('T')[0];
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.description.trim() === '' || formData.amount <= 0) {
@@ -73,30 +113,67 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onClos
             return;
         }
 
-        const transactionData = {
-            ...formData,
-            installments: formData.accountType === 'Não Recorrente' ? formData.installments : undefined,
+        // Format installments string
+        let installmentsStr = undefined;
+        if (formData.accountType === 'Não Recorrente' && formData.installmentTotal > 1) {
+            installmentsStr = `${formData.installmentCurrent}/${formData.installmentTotal}`;
+        }
+
+        const baseTransactionData: NewTransaction = {
+            description: formData.description,
+            amount: formData.amount,
+            date: formData.date,
+            dueDate: formData.dueDate,
+            category: formData.category,
+            status: formData.status,
+            accountType: formData.accountType,
+            installments: installmentsStr,
         };
 
         if (isNew) {
-            onSave(transactionData, true);
+            // Lógica de Geração Automática de Parcelas
+            if (formData.generateFuture && formData.accountType === 'Não Recorrente' && formData.installmentTotal > formData.installmentCurrent) {
+                const transactionsToCreate: NewTransaction[] = [];
+                
+                // Adiciona a parcela atual
+                transactionsToCreate.push(baseTransactionData);
+
+                // Gera as próximas
+                for (let i = formData.installmentCurrent + 1; i <= formData.installmentTotal; i++) {
+                    const monthsToAdd = i - formData.installmentCurrent;
+                    const nextDueDate = addMonths(formData.dueDate, monthsToAdd);
+                    
+                    transactionsToCreate.push({
+                        ...baseTransactionData,
+                        status: 'Pendente', // Futuras nascem pendentes
+                        date: nextDueDate, // Data ref para ordenação
+                        dueDate: nextDueDate,
+                        installments: `${i}/${formData.installmentTotal}`,
+                    });
+                }
+                
+                onSave(transactionsToCreate, true);
+            } else {
+                onSave(baseTransactionData, true);
+            }
         } else {
-            onSave({ ...transactionData, id: transaction!.id }, false);
+            // Edição
+            onSave({ ...baseTransactionData, id: transaction!.id }, false);
         }
     };
 
-    const inputStyles = "block w-full border border-slate-300 rounded-lg shadow-sm py-2.5 px-3 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition";
-    const labelStyles = "block text-sm font-medium text-slate-700 mb-1";
-    const disabledTextStyles = "block w-full bg-slate-100 rounded-lg py-2.5 px-3 text-slate-500 border border-slate-200";
+    const inputStyles = "block w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm py-2.5 px-3 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition-colors";
+    const labelStyles = "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1";
+    const disabledTextStyles = "block w-full bg-slate-100 dark:bg-slate-700 rounded-lg py-2.5 px-3 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600";
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fade-in" onClick={onClose}>
-            <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-full overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-800">
+        <div className="fixed inset-0 bg-black/50 z-[60] flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-slate-800" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-900 z-10">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">
                         {isNew ? 'Adicionar Novo Pagamento' : 'Editar Pagamento'}
                     </h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                         <CloseIcon />
                     </button>
                 </div>
@@ -104,7 +181,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onClos
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
                             <label htmlFor="description" className={labelStyles}>Descrição</label>
-                            <input type="text" name="description" id="description" value={formData.description} onChange={handleChange} className={inputStyles} required />
+                            <input type="text" name="description" id="description" value={formData.description} onChange={handleChange} className={inputStyles} required autoFocus />
                         </div>
 
                         <div>
@@ -156,18 +233,60 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onClos
                         </div>
 
                         {formData.accountType === 'Não Recorrente' && (
-                            <div className="md:col-span-2">
-                                <label htmlFor="installments" className={labelStyles}>Parcelas (ex: 1/3)</label>
-                                <input type="text" name="installments" id="installments" value={formData.installments} onChange={handleChange} className={inputStyles} placeholder="Ex: 1/3" />
+                            <div className="md:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-100 dark:border-slate-700">
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Configuração de Parcelas</label>
+                                <div className="flex gap-4 items-center">
+                                    <div className="flex-1">
+                                        <label htmlFor="installmentCurrent" className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Parcela Atual</label>
+                                        <input 
+                                            type="number" 
+                                            name="installmentCurrent" 
+                                            id="installmentCurrent" 
+                                            value={formData.installmentCurrent} 
+                                            onChange={handleChange} 
+                                            className={inputStyles} 
+                                            min="1" 
+                                        />
+                                    </div>
+                                    <div className="text-slate-400 mt-5">/</div>
+                                    <div className="flex-1">
+                                        <label htmlFor="installmentTotal" className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Total</label>
+                                        <input 
+                                            type="number" 
+                                            name="installmentTotal" 
+                                            id="installmentTotal" 
+                                            value={formData.installmentTotal} 
+                                            onChange={handleChange} 
+                                            className={inputStyles} 
+                                            min="1" 
+                                        />
+                                    </div>
+                                </div>
+                                {isNew && formData.installmentTotal > formData.installmentCurrent && (
+                                    <div className="mt-3 flex items-start gap-2">
+                                        <input 
+                                            type="checkbox" 
+                                            name="generateFuture" 
+                                            id="generateFuture" 
+                                            checked={formData.generateFuture} 
+                                            onChange={handleChange}
+                                            className="mt-1 w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-slate-800 dark:bg-slate-700 dark:border-slate-600"
+                                        />
+                                        <label htmlFor="generateFuture" className="text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
+                                            Gerar automaticamente as <strong>{formData.installmentTotal - formData.installmentCurrent}</strong> parcelas futuras?
+                                            <span className="block text-xs text-slate-500 mt-0.5">As datas de vencimento serão geradas para os próximos meses.</span>
+                                        </label>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
                     <div className="mt-6 flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="bg-white border border-slate-300 text-slate-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-slate-50 transition-colors">
+                        <button type="button" onClick={onClose} className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold py-2.5 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                             Cancelar
                         </button>
                         <button type="submit" className="bg-primary text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-primary-hover transition-colors">
-                            {isNew ? 'Adicionar' : 'Salvar Alterações'}
+                            {isNew ? (Array.isArray(formData) ? 'Adicionar Vários' : 'Adicionar') : 'Salvar Alterações'}
                         </button>
                     </div>
                 </form>

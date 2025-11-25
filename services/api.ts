@@ -1,7 +1,13 @@
+
 // services/api.ts
-import { Transaction, NewTransaction } from '../types';
+import { Transaction, NewTransaction, TransactionCategory } from '../types';
 
 const TRANSACTIONS_KEY = 'transactions_v2';
+const CATEGORIES_KEY = 'categories_v1';
+const BUDGET_KEY = 'monthly_budget_v1';
+
+// Default categories
+const DEFAULT_CATEGORIES = ['Moradia', 'Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Serviços', 'Impostos', 'Eletrônicos', 'Outros'];
 
 const getInitialTransactions = (): Transaction[] => {
   const data = localStorage.getItem(TRANSACTIONS_KEY);
@@ -40,9 +46,30 @@ const getInitialTransactions = (): Transaction[] => {
 };
 
 let transactions: Transaction[] = getInitialTransactions();
+let categories: string[] = [];
+
+// Load categories from storage or default
+const loadCategories = (): string[] => {
+    const data = localStorage.getItem(CATEGORIES_KEY);
+    if (data) {
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            console.error("Failed to parse categories", e);
+        }
+    }
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(DEFAULT_CATEGORIES));
+    return DEFAULT_CATEGORIES;
+};
+
+categories = loadCategories();
 
 const saveTransactions = () => {
   localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions));
+};
+
+const saveCategories = () => {
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
 };
 
 export const getTransactions = async (): Promise<Transaction[]> => {
@@ -52,11 +79,22 @@ export const getTransactions = async (): Promise<Transaction[]> => {
 export const addTransaction = async (transaction: NewTransaction): Promise<Transaction> => {
   const newTransaction: Transaction = {
     ...transaction,
-    id: new Date().getTime().toString(),
+    id: new Date().getTime().toString() + Math.random().toString(36).substr(2, 9),
   };
   transactions.unshift(newTransaction);
   saveTransactions();
   return Promise.resolve(newTransaction);
+};
+
+export const addMultipleTransactions = async (newTransactions: NewTransaction[]): Promise<Transaction[]> => {
+    const created: Transaction[] = newTransactions.map((t, index) => ({
+        ...t,
+        id: (new Date().getTime() + index).toString() + Math.random().toString(36).substr(2, 9),
+    }));
+    
+    transactions.unshift(...created);
+    saveTransactions();
+    return Promise.resolve(created);
 };
 
 export const updateTransaction = async (updatedTransaction: Transaction): Promise<Transaction> => {
@@ -69,4 +107,35 @@ export const deleteTransaction = async (id: string): Promise<void> => {
   transactions = transactions.filter(t => t.id !== id);
   saveTransactions();
   return Promise.resolve();
+};
+
+// Category API
+export const getCategories = async (): Promise<string[]> => {
+    return Promise.resolve([...categories]);
+};
+
+export const addCategory = async (category: string): Promise<string[]> => {
+    if (!categories.includes(category)) {
+        categories.push(category);
+        categories.sort();
+        saveCategories();
+    }
+    return Promise.resolve([...categories]);
+};
+
+export const deleteCategory = async (category: string): Promise<string[]> => {
+    categories = categories.filter(c => c !== category);
+    saveCategories();
+    return Promise.resolve([...categories]);
+};
+
+// Budget API
+export const getBudget = async (): Promise<number> => {
+    const data = localStorage.getItem(BUDGET_KEY);
+    return Promise.resolve(data ? parseFloat(data) : 0);
+};
+
+export const setBudget = async (amount: number): Promise<number> => {
+    localStorage.setItem(BUDGET_KEY, amount.toString());
+    return Promise.resolve(amount);
 };
