@@ -2,7 +2,7 @@
 // components/TransactionsView.tsx
 import React, { useState, useMemo } from 'react';
 import { Transaction, TransactionCategory } from '../types';
-import { PlusIcon, PencilIcon, TrashIcon, SearchIcon, DownloadIcon } from './Icons';
+import { PlusIcon, PencilIcon, TrashIcon, SearchIcon, DownloadIcon, RepeatIcon } from './Icons';
 
 interface TransactionsViewProps {
   transactions: Transaction[];
@@ -179,7 +179,14 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
                   </td>
                   <td className="px-6 py-4">{getStatusChip(t.status)}</td>
                   <td className="px-6 py-4">{dateFormatter(t.dueDate)}</td>
-                  <td className="px-6 py-4">{t.accountType}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1.5">
+                        {t.accountType === 'Recorrente' && (
+                            <RepeatIcon className="w-4 h-4 text-primary dark:text-primary-light" title="Pagamento Recorrente" />
+                        )}
+                        <span>{t.accountType}</span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4">{t.installments || '-'}</td>
                   <td className="px-6 py-4 text-right">
                     <button onClick={() => onEditTransaction(t)} className="text-primary hover:text-primary-hover dark:text-primary-light mr-4"><PencilIcon /></button>
