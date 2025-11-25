@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+// fix: Correct import path for ToastMessage type
 import { ToastMessage } from '../types';
 import { CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, CloseIcon } from './Icons';
 

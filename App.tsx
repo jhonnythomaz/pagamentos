@@ -1,244 +1,222 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Transaction, NewTransaction, View, TransactionStatus, ToastMessage } from './types';
+// App.tsx
+import React, { useState, useEffect } from 'react';
+import { Transaction, ToastMessage, NewTransaction } from './types';
 import * as api from './services/api';
-import * as notificationService from './services/notificationService';
+import notificationService, { notify } from './services/notificationService';
+import { LogoIcon, DashboardIcon, TransactionsIcon, ReportsIcon, CalendarIcon, DocumentTextIcon } from './components/Icons';
 import Dashboard from './components/Dashboard';
 import TransactionsView from './components/TransactionsView';
 import ReportsView from './components/ReportsView';
-import AccountsDueView from './components/AccountsDueView';
 import CalendarView from './components/CalendarView';
-import { DashboardIcon, TransactionsIcon, ReportsIcon, CalendarIcon, LogoIcon, DocumentTextIcon } from './components/Icons';
+import AccountsDueView from './components/AccountsDueView';
 import ToastContainer from './components/ToastContainer';
+import TransactionModal from './components/TransactionModal';
 
-export type FiltersState = {
-    id?: string;
-    description: string;
-    category: string;
-    accountType: string;
-    status: string;
-    startDate: string;
-    endDate: string;
-};
-
-const Sidebar: React.FC<{ activeView: View; setView: (view: View) => void }> = ({ activeView, setView }) => {
-    const navItems = [
-        { id: View.DASHBOARD, label: 'Painel', icon: <DashboardIcon /> },
-        { id: View.TRANSACTIONS, label: 'Pagamentos', icon: <TransactionsIcon /> },
-        { id: View.CALENDAR, label: 'Calendário', icon: <CalendarIcon /> },
-        { id: View.ACCOUNTS_DUE, label: 'Contas a Vencer', icon: <DocumentTextIcon /> },
-        { id: View.REPORTS, label: 'Relatórios', icon: <ReportsIcon /> },
-    ];
-
-    return (
-        <aside className="w-64 bg-slate-800 text-slate-300 flex flex-col shrink-0">
-            <div className="flex items-center gap-3 p-6 text-xl font-bold text-white border-b border-slate-700">
-                <LogoIcon className="w-7 h-7 text-primary" />
-                <span>Pagamentos</span>
-            </div>
-            <nav className="flex-1 px-4 py-4">
-                <ul>
-                    {navItems.map(item => (
-                        <li key={item.id}>
-                            <a
-                                href="#"
-                                onClick={(e) => { e.preventDefault(); setView(item.id); }}
-                                className={`flex items-center gap-3 px-4 py-3 my-1 rounded-lg transition-all duration-200 relative ${
-                                    activeView === item.id 
-                                        ? 'bg-slate-700 text-white font-semibold' 
-                                        : 'hover:bg-slate-700/50 hover:text-white'
-                                }`}
-                            >
-                                {activeView === item.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-primary rounded-r-full"></div>}
-                                {React.cloneElement(item.icon, { className: 'w-5 h-5' })}
-                                <span className="text-sm">{item.label}</span>
-                            </a>
-                        </li>
-                    ))}
-                </ul>
-            </nav>
-        </aside>
-    );
-};
+type View = 'dashboard' | 'transactions' | 'reports' | 'calendar' | 'accountsDue';
 
 const App: React.FC = () => {
-    const [view, setView] = useState<View>(View.DASHBOARD);
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [categories, setCategories] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [initialFilters, setInitialFilters] = useState<Partial<FiltersState> | null>(null);
-    const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [view, setView] = useState<View>('dashboard');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [toastMessages, setToastMessages] = useState<ToastMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-    const addToast = (message: string, type: ToastMessage['type']) => {
-        setToasts(prevToasts => [
-            ...prevToasts,
-            { id: Date.now(), message, type },
-        ]);
-    };
-
-    const removeToast = (id: number) => {
-        setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
-    };
-
-    const fetchData = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const [transData, catData] = await Promise.all([
-                api.getTransactions(),
-                api.getCategories()
-            ]);
-            setTransactions(transData);
-            setCategories(catData.sort());
-        } catch (err) {
-            setError('Falha ao buscar dados. Por favor, tente novamente mais tarde.');
-            addToast('Falha ao buscar dados.', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchData();
-        // Request permission as soon as the app loads.
-        // It's safe to call this; it only prompts if permission is 'default'.
-        notificationService.requestNotificationPermission();
-    }, [fetchData]);
-
-    useEffect(() => {
-        // This effect runs whenever transactions change to check for notifications.
-        if (transactions.length > 0) {
-            notificationService.checkAndSendNotifications(transactions);
-        }
-    }, [transactions]);
-
-    const createNextInstallment = async (paidTransaction: Transaction) => {
-        if (
-            paidTransaction.installments &&
-            paidTransaction.installments.current < paidTransaction.installments.total
-        ) {
-            const nextInstallmentDate = new Date(paidTransaction.date);
-            nextInstallmentDate.setMonth(nextInstallmentDate.getMonth() + 1);
-
-            const nextInstallment: NewTransaction = {
-                description: paidTransaction.description,
-                amount: paidTransaction.amount,
-                category: paidTransaction.category,
-                accountType: paidTransaction.accountType,
-                date: nextInstallmentDate.toISOString(),
-                status: TransactionStatus.PENDING,
-                installments: {
-                    current: paidTransaction.installments.current + 1,
-                    total: paidTransaction.installments.total,
-                },
-            };
-            
-            await api.addTransaction(nextInstallment);
-            addToast(`Próxima parcela (${nextInstallment.installments.current}/${nextInstallment.installments.total}) criada.`, 'info');
-        }
-    };
-    
-    const handleSaveTransaction = async (transaction: NewTransaction | (Partial<NewTransaction> & { id: string })) => {
-        try {
-            if ('id' in transaction) {
-                const originalTransaction = transactions.find(t => t.id === transaction.id);
-                await api.updateTransaction(transaction.id, transaction);
-                notificationService.clearNotificationStatus(transaction.id);
-                addToast('Pagamento atualizado com sucesso!', 'success');
-                
-                if (
-                    originalTransaction &&
-                    originalTransaction.status === TransactionStatus.PENDING &&
-                    transaction.status === TransactionStatus.PAID
-                ) {
-                    await createNextInstallment({ ...originalTransaction, ...transaction } as Transaction);
-                }
-            } else {
-                await api.addTransaction(transaction);
-                addToast('Pagamento criado com sucesso!', 'success');
-            }
-            fetchData();
-        } catch (err) {
-            addToast('Falha ao salvar pagamento.', 'error');
-        }
-    };
-    
-    const handleDeleteTransaction = async (id: string) => {
-        if (window.confirm('Você tem certeza que quer deletar este pagamento?')) {
-            try {
-                await api.deleteTransaction(id);
-                notificationService.clearNotificationStatus(id);
-                addToast('Pagamento deletado.', 'info');
-                fetchData();
-            } catch (err) {
-                addToast('Falha ao deletar pagamento.', 'error');
-            }
-        }
-    };
-
-    const handleMarkAsPaid = async (id: string) => {
-        try {
-            const transactionToPay = transactions.find(t => t.id === id);
-            if (!transactionToPay) throw new Error("Transaction not found");
-
-            await api.updateTransaction(id, { status: TransactionStatus.PAID });
-            notificationService.clearNotificationStatus(id);
-            addToast('Conta marcada como paga!', 'success');
-            
-            await createNextInstallment(transactionToPay);
-            
-            fetchData();
-        } catch (err) {
-            addToast('Falha ao marcar a conta como paga.', 'error');
-        }
-    };
-
-    const handleNavigateWithFilters = (filters: Partial<FiltersState>) => {
-        setInitialFilters(filters);
-        setView(View.TRANSACTIONS);
-    };
-    
-    const handleSetView = (newView: View) => {
-        setInitialFilters(null); // Clear filters when changing views manually
-        setView(newView);
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getTransactions();
+      setTransactions(data);
+    } catch (error) {
+      console.error("Failed to fetch transactions", error);
+      notify.error("Falha ao carregar transações.");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const renderContent = () => {
-        if (isLoading) return <div className="flex justify-center items-center h-full"><p className="text-xl text-slate-500">Carregando...</p></div>;
-        if (error && transactions.length === 0) return <div className="flex justify-center items-center h-full"><p className="text-xl text-danger">{error}</p></div>;
+  useEffect(() => {
+    fetchTransactions();
+    const unsubscribe = notificationService.subscribe(setToastMessages);
+    return () => unsubscribe();
+  }, []);
+  
+  const handleDismissToast = (id: number) => {
+    notificationService.dismiss(id);
+  };
+  
+  const openTransactionModal = (transaction: Transaction | null) => {
+      setSelectedTransaction(transaction);
+      setIsModalOpen(true);
+  };
 
-        switch (view) {
-            case View.DASHBOARD:
-                return <Dashboard transactions={transactions} onNavigate={handleNavigateWithFilters} setView={handleSetView} />;
-            case View.TRANSACTIONS:
-                return <TransactionsView 
-                            transactions={transactions} 
-                            categories={categories} 
-                            onSave={handleSaveTransaction} 
-                            onDelete={handleDeleteTransaction}
-                            initialFilters={initialFilters}
-                            onInitialFiltersApplied={() => setInitialFilters(null)}
-                       />;
-            case View.CALENDAR:
-                return <CalendarView transactions={transactions} />;
-            case View.REPORTS:
-                return <ReportsView transactions={transactions} />;
-            case View.ACCOUNTS_DUE:
-                return <AccountsDueView transactions={transactions} onMarkAsPaid={handleMarkAsPaid} />;
-            default:
-                return <Dashboard transactions={transactions} onNavigate={handleNavigateWithFilters} setView={handleSetView} />;
-        }
-    };
+  const closeTransactionModal = () => {
+      setIsModalOpen(false);
+      setSelectedTransaction(null);
+  };
 
-    return (
-        <div className="flex h-screen bg-slate-50 font-sans">
-            <Sidebar activeView={view} setView={handleSetView} />
-            <main className="flex-1 overflow-y-auto">
-                {renderContent()}
-            </main>
-            <ToastContainer messages={toasts} onDismiss={removeToast} />
-        </div>
-    );
+  const createNextInstallment = (transaction: Transaction): NewTransaction | null => {
+      const originalDueDate = new Date(transaction.dueDate);
+      const year = originalDueDate.getUTCFullYear();
+      const month = originalDueDate.getUTCMonth();
+      const day = originalDueDate.getUTCDate();
+      
+      const nextDueDate = new Date(Date.UTC(year, month + 1, day));
+      
+      if (nextDueDate.getUTCMonth() !== (month + 1) % 12) {
+          nextDueDate.setUTCDate(0);
+      }
+      
+      const newDueDateString = nextDueDate.toISOString().split('T')[0];
+
+      if (transaction.accountType === 'Recorrente') {
+          return {
+              description: transaction.description,
+              amount: transaction.amount,
+              category: transaction.category,
+              accountType: transaction.accountType,
+              status: 'Pendente',
+              dueDate: newDueDateString,
+              date: newDueDateString,
+          };
+      }
+
+      if (transaction.accountType === 'Não Recorrente' && transaction.installments) {
+          const [current, total] = transaction.installments.split('/').map(Number);
+          if (current < total) {
+              return {
+                  description: transaction.description,
+                  amount: transaction.amount,
+                  category: transaction.category,
+                  accountType: transaction.accountType,
+                  status: 'Pendente',
+                  installments: `${current + 1}/${total}`,
+                  dueDate: newDueDateString,
+                  date: newDueDateString,
+              };
+          }
+      }
+      return null;
+  };
+
+  const handleSaveTransaction = async (transactionData: Transaction | NewTransaction, isNew: boolean) => {
+      try {
+          if (isNew) {
+              const newTransactionData: NewTransaction = {
+                  description: transactionData.description,
+                  amount: transactionData.amount,
+                  date: transactionData.date,
+                  dueDate: transactionData.dueDate,
+                  category: transactionData.category,
+                  status: transactionData.status,
+                  accountType: transactionData.accountType,
+                  installments: transactionData.installments,
+              };
+              await api.addTransaction(newTransactionData);
+              notify.success('Pagamento adicionado com sucesso!');
+          } else {
+              const transaction = transactionData as Transaction;
+              const originalTransaction = transactions.find(t => t.id === transaction.id);
+              await api.updateTransaction(transaction);
+              notify.success('Pagamento atualizado com sucesso!');
+
+              if (originalTransaction?.status === 'Pendente' && transaction.status === 'Pago') {
+                  const nextInstallment = createNextInstallment(transaction);
+                  if (nextInstallment) {
+                      await api.addTransaction(nextInstallment);
+                      notify.info(`Próximo pagamento para "${transaction.description}" foi criado.`);
+                  }
+              }
+          }
+          fetchTransactions();
+          closeTransactionModal();
+      } catch (error) {
+          notify.error('Falha ao salvar o pagamento.');
+          console.error(error);
+      }
+  };
+
+  const handleDeleteTransaction = async (id: string) => {
+      try {
+          await api.deleteTransaction(id);
+          notify.success('Pagamento excluído com sucesso!');
+          fetchTransactions();
+      } catch (error) {
+          notify.error('Falha ao excluir o pagamento.');
+          console.error(error);
+      }
+  };
+
+  const renderView = () => {
+    switch (view) {
+      case 'dashboard':
+        return <Dashboard transactions={transactions} setView={setView} onTransactionClick={openTransactionModal} />;
+      case 'transactions':
+        return <TransactionsView transactions={transactions} onEditTransaction={openTransactionModal} onDelete={handleDeleteTransaction}/>;
+      case 'reports':
+        return <ReportsView transactions={transactions} />;
+      case 'calendar':
+        return <CalendarView transactions={transactions} onTransactionClick={openTransactionModal} />;
+      case 'accountsDue':
+        return <AccountsDueView transactions={transactions} />;
+      default:
+        return <Dashboard transactions={transactions} setView={setView} onTransactionClick={openTransactionModal} />;
+    }
+  };
+  
+  const NavLink: React.FC<{
+      currentView: View;
+      viewName: View;
+      icon: React.ReactNode;
+      label: string;
+      onClick: (view: View) => void;
+  }> = ({ currentView, viewName, icon, label, onClick }) => (
+      <button
+          onClick={() => onClick(viewName)}
+          className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+              currentView === viewName
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-slate-500 hover:bg-slate-200'
+          }`}
+      >
+          {icon}
+          <span className="ml-3">{label}</span>
+      </button>
+  );
+
+  return (
+    <div className="flex h-screen bg-slate-100 font-sans">
+      <ToastContainer messages={toastMessages} onDismiss={handleDismissToast} />
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col p-4">
+          <div className="flex items-center gap-2 px-2 py-4">
+              <LogoIcon className="w-8 h-8 text-primary" />
+              <h1 className="text-xl font-bold text-slate-800">FinanDash</h1>
+          </div>
+          <nav className="mt-8 flex flex-col gap-2">
+              <NavLink currentView={view} viewName="dashboard" icon={<DashboardIcon />} label="Painel" onClick={setView} />
+              <NavLink currentView={view} viewName="transactions" icon={<TransactionsIcon />} label="Pagamentos" onClick={setView} />
+              <NavLink currentView={view} viewName="accountsDue" icon={<DocumentTextIcon />} label="Contas a Vencer" onClick={setView} />
+              <NavLink currentView={view} viewName="calendar" icon={<CalendarIcon />} label="Calendário" onClick={setView} />
+              <NavLink currentView={view} viewName="reports" icon={<ReportsIcon />} label="Relatórios" onClick={setView} />
+          </nav>
+      </aside>
+      <main className="flex-1 overflow-y-auto">
+        {loading ? (
+            <div className="flex items-center justify-center h-full">
+                <p className="text-slate-500">Carregando dados...</p>
+            </div>
+        ) : renderView()}
+      </main>
+      
+      {isModalOpen && (
+        <TransactionModal
+            transaction={selectedTransaction}
+            onClose={closeTransactionModal}
+            onSave={handleSaveTransaction}
+        />
+      )}
+    </div>
+  );
 };
 
 export default App;

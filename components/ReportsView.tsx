@@ -1,3 +1,4 @@
+// components/ReportsView.tsx
 import React, { useMemo, useState } from 'react';
 import { Transaction } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -13,8 +14,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions }) => {
     const availablePeriods = useMemo(() => {
         const periods = new Set<string>();
         transactions.forEach(t => {
-            const date = new Date(t.date);
-            const period = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const date = new Date(t.dueDate);
+            const period = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
             periods.add(period);
         });
         return Array.from(periods).sort((a, b) => b.localeCompare(a));
@@ -32,17 +33,17 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions }) => {
         }
         const [year, month] = selectedPeriod.split('-').map(Number);
         return transactions.filter(t => {
-            const date = new Date(t.date);
-            return date.getFullYear() === year && (date.getMonth() + 1) === month;
+            const date = new Date(t.dueDate);
+            return date.getUTCFullYear() === year && (date.getUTCMonth() + 1) === month;
         });
     }, [transactions, selectedPeriod]);
 
     const monthlyData = useMemo(() => {
         const data: { [key: string]: { name: string, despesa: number, sortKey: string } } = {};
         filteredTransactions.forEach(t => {
-            const date = new Date(t.date);
+            const date = new Date(t.dueDate);
             const month = date.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
-            const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const sortKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 
             if (!data[month]) {
                 data[month] = { name: month, despesa: 0, sortKey: sortKey };
@@ -73,16 +74,18 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions }) => {
         }
 
         let csvContent = "";
-        csvContent += "Despesas Mensais\n";
-        csvContent += "Mês,Despesa\n";
+        csvContent += "Balanço Mensal\n";
+        csvContent += "Mês;Despesa\n";
         monthlyData.forEach(row => {
-            csvContent += `"${row.name}",${row.despesa}\n`;
+            const formattedDespesa = row.despesa.toLocaleString('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            csvContent += `"${row.name}";"${formattedDespesa}"\n`;
         });
         csvContent += "\n";
         csvContent += "Despesas por Categoria\n";
-        csvContent += "Categoria,Valor\n";
+        csvContent += "Categoria;Valor\n";
         expenseByCategoryData.forEach(row => {
-            csvContent += `"${row.name.replace(/"/g, '""')}",${row.value}\n`;
+            const formattedValue = row.value.toLocaleString('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            csvContent += `"${row.name.replace(/"/g, '""')}";"${formattedValue}"\n`;
         });
 
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
@@ -132,7 +135,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions }) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white p-6 rounded-xl shadow-card">
-                    <h2 className="text-xl font-semibold text-slate-700 mb-6">Despesas Mensais</h2>
+                    <h2 className="text-xl font-semibold text-slate-700 mb-6">Despesas por Mês</h2>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={monthlyData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -165,7 +168,6 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions }) => {
                                     ))}
                                 </Pie>
                                 <Tooltip formatter={currencyFormatter} contentStyle={{backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}/>
-                                <Legend wrapperStyle={{fontSize: "14px", paddingTop: '20px'}}/>
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
