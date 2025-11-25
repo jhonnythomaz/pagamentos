@@ -16,6 +16,8 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
   const [statusFilter, setStatusFilter] = useState('all');
   const [accountTypeFilter, setAccountTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   
@@ -26,9 +28,14 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
       const statusMatch = statusFilter === 'all' || t.status === statusFilter;
       const accountTypeMatch = accountTypeFilter === 'all' || t.accountType === accountTypeFilter;
       const categoryMatch = categoryFilter === 'all' || t.category === categoryFilter;
-      return searchMatch && statusMatch && accountTypeMatch && categoryMatch;
+      
+      const transactionDate = t.dueDate;
+      const startDateMatch = !startDate || transactionDate >= startDate;
+      const endDateMatch = !endDate || transactionDate <= endDate;
+
+      return searchMatch && statusMatch && accountTypeMatch && categoryMatch && startDateMatch && endDateMatch;
     });
-  }, [transactions, searchTerm, statusFilter, accountTypeFilter, categoryFilter]);
+  }, [transactions, searchTerm, statusFilter, accountTypeFilter, categoryFilter, startDate, endDate]);
   
   const paginatedTransactions = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -56,7 +63,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
   
   const handleExportCSV = () => {
         const headers = ["Data do Pagamento", "Descrição", "Categoria", "Tipo de Conta", "Valor", "Status", "Parcela", "Data de Vencimento"];
-        const rows = transactions.map(t => [
+        const rows = filteredTransactions.map(t => [
             dateFormatter(t.date),
             `"${t.description.replace(/"/g, '""')}"`,
             t.category,
@@ -101,8 +108,8 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="relative md:col-span-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+            <div className="relative">
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <input
                     type="text"
@@ -126,6 +133,24 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categ
                 <option value="all">Toda Categoria</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
+            <div className="relative">
+                <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
+                    className={selectStyles}
+                    title="Data Inicial de Vencimento"
+                />
+            </div>
+            <div className="relative">
+                <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
+                    className={selectStyles}
+                    title="Data Final de Vencimento"
+                />
+            </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-card overflow-hidden border border-slate-100 dark:border-slate-800 transition-colors">
