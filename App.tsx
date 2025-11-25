@@ -1,10 +1,11 @@
 
 // App.tsx
 import React, { useState, useEffect } from 'react';
-import { Transaction, ToastMessage, NewTransaction } from './types';
+import { Transaction, ToastMessage, NewTransaction, User } from './types';
 import * as api from './services/api';
+import * as authService from './services/authService';
 import notificationService, { notify } from './services/notificationService';
-import { LogoIcon, DashboardIcon, TransactionsIcon, ReportsIcon, CalendarIcon, DocumentTextIcon, SettingsIcon, MoonIcon, SunIcon, MenuIcon, CloseIcon } from './components/Icons';
+import { LogoIcon, DashboardIcon, TransactionsIcon, ReportsIcon, CalendarIcon, DocumentTextIcon, SettingsIcon, MoonIcon, SunIcon, MenuIcon, CloseIcon, LogoutIcon } from './components/Icons';
 import Dashboard from './components/Dashboard';
 import TransactionsView from './components/TransactionsView';
 import ReportsView from './components/ReportsView';
@@ -13,10 +14,12 @@ import AccountsDueView from './components/AccountsDueView';
 import ToastContainer from './components/ToastContainer';
 import TransactionModal from './components/TransactionModal';
 import SettingsView from './components/SettingsView';
+import LoginView from './components/LoginView';
 
 type View = 'dashboard' | 'transactions' | 'reports' | 'calendar' | 'accountsDue' | 'settings';
 
 const App: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<View>('dashboard');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -46,6 +49,30 @@ const App: React.FC = () => {
     }
   }, [darkMode]);
 
+  // Auth Effect
+  useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser) {
+        handleLoginSuccess(currentUser);
+    } else {
+        setLoading(false); // Stop loading if no user
+    }
+  }, []);
+
+  const handleLoginSuccess = (user: User) => {
+      setUser(user);
+      api.initApi(user.id); // Initialize API with specific User ID
+      fetchData();
+  };
+
+  const handleLogout = () => {
+      authService.logout();
+      setUser(null);
+      setTransactions([]);
+      setCategories([]);
+      setView('dashboard');
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -66,10 +93,12 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
-    const unsubscribe = notificationService.subscribe(setToastMessages);
-    return () => unsubscribe();
-  }, []);
+    // Only subscribe to notifications if user is logged in
+    if (user) {
+        const unsubscribe = notificationService.subscribe(setToastMessages);
+        return () => unsubscribe();
+    }
+  }, [user]);
   
   const handleDismissToast = (id: number) => {
     notificationService.dismiss(id);
@@ -272,6 +301,18 @@ const App: React.FC = () => {
       </button>
   );
 
+  // --- Render Login View if not Authenticated ---
+  if (!user) {
+      return (
+          <>
+            <ToastContainer messages={toastMessages} onDismiss={handleDismissToast} />
+            <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
+                 <LoginView onLoginSuccess={handleLoginSuccess} onError={(msg) => notify.error(msg)} />
+            </div>
+          </>
+      );
+  }
+
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-slate-900 font-sans transition-colors duration-300">
       <ToastContainer messages={toastMessages} onDismiss={handleDismissToast} />
@@ -289,7 +330,10 @@ const App: React.FC = () => {
           <div className="flex items-center justify-between px-2 py-4 mb-4">
               <div className="flex items-center gap-2">
                 <LogoIcon className="w-8 h-8 text-primary" />
-                <h1 className="text-xl font-bold text-slate-800 dark:text-white">Alecrim</h1>
+                <div>
+                    <h1 className="text-xl font-bold text-slate-800 dark:text-white">Alecrim</h1>
+                    <p className="text-xs text-slate-500 truncate max-w-[120px]">{user.name}</p>
+                </div>
               </div>
               <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400">
                   <CloseIcon />
@@ -311,6 +355,13 @@ const App: React.FC = () => {
             >
                 {darkMode ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
                 <span className="ml-3">{darkMode ? 'Modo Claro' : 'Modo Escuro'}</span>
+            </button>
+            <button
+                onClick={handleLogout}
+                className="flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg text-danger hover:bg-danger/10 transition-colors"
+            >
+                <LogoutIcon className="w-6 h-6" />
+                <span className="ml-3">Sair</span>
             </button>
           </div>
       </aside>

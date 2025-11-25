@@ -4,6 +4,13 @@ export type TransactionCategory = string;
 export type TransactionStatus = 'Pago' | 'Pendente';
 export type AccountType = 'Recorrente' | 'Não Recorrente';
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password?: string; // Nota: Em um app real, nunca armazene senhas em texto puro no frontend/localStorage.
+}
+
 export interface Transaction {
   id: string;
   description: string;
