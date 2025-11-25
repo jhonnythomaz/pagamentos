@@ -289,7 +289,7 @@ const App: React.FC = () => {
           <div className="flex items-center justify-between px-2 py-4 mb-4">
               <div className="flex items-center gap-2">
                 <LogoIcon className="w-8 h-8 text-primary" />
-                <h1 className="text-xl font-bold text-slate-800 dark:text-white">FinanDash</h1>
+                <h1 className="text-xl font-bold text-slate-800 dark:text-white">Alecrim</h1>
               </div>
               <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400">
                   <CloseIcon />

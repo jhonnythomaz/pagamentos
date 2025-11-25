@@ -1,11 +1,12 @@
-# 💰 Organizador de Pagamentos (FinanDash)
+
+# 🌿 Alecrim (Organizador de Pagamentos)
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)
 
-Uma aplicação web completa para **Gestão Financeira Pessoal**, focada no controle de contas a pagar, orçamentos mensais e visualização de despesas. O projeto é construído com **React**, **TypeScript** e estilizado com **Tailwind CSS**, oferecendo uma interface moderna, responsiva e com suporte a tema escuro (Dark Mode).
+**Alecrim** é uma aplicação web completa para **Gestão Financeira Pessoal**, focada no controle de contas a pagar, orçamentos mensais e visualização de despesas. O projeto é construído com **React**, **TypeScript** e estilizado com **Tailwind CSS**, oferecendo uma interface moderna, responsiva e com suporte a tema escuro (Dark Mode).
 
 ---
 
@@ -52,8 +53,8 @@ Pré-requisitos: Certifique-se de ter o **Node.js** instalado.
 
 1. **Clone o repositório:**
    ```bash
-   git clone https://github.com/seu-usuario/organizador-pagamentos.git
-   cd organizador-pagamentos
+   git clone https://github.com/seu-usuario/alecrim.git
+   cd alecrim
    ```
 
 2. **Instale as dependências:**
