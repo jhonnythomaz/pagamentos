@@ -1,164 +1,103 @@
 
-<div align="center">
-	<h1>🌿 Alecrim Dourado — Organizador de Pagamentos</h1>
-	<p><em>Aplicação web para controlar contas, pagamentos, categorias e relatórios financeiros.</em></p>
-</div>
+# 🌿 Alecrim (Organizador de Pagamentos)
 
-Resumo: projeto front-end criado com React + Vite em TypeScript. Fornece telas para visualizar contas a vencer, vencidas, pagas, gráficos de despesas (Recharts) e gerenciamento básico de transações.
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)
 
----
-
-## Índice
-
-- Sobre
-- Recursos
-- Tecnologias
-- Pré-requisitos
-- Instalação rápida
-- Scripts disponíveis
-- Variáveis de ambiente
-- Configurações importantes
-- Estrutura do projeto
-- Deploy (GitHub Pages)
-- Dicas de desenvolvimento
-- Problemas comuns / Troubleshooting
-- Contribuição
-- Licença
+**Alecrim** é uma aplicação web completa para **Gestão Financeira Pessoal**, focada no controle de contas a pagar, orçamentos mensais e visualização de despesas. O projeto é construído com **React**, **TypeScript** e estilizado com **Tailwind CSS**, oferecendo uma interface moderna, responsiva e com suporte a tema escuro (Dark Mode).
 
 ---
 
-## Sobre
+## ✨ Funcionalidades Principais
 
-Nome: Alecrim Dourado — Organizador de Pagamentos
+### 📊 Dashboard Inteligente
+- **Visão Geral:** Cards com totais pagos, a vencer e vencidos no mês.
+- **Meta de Gastos (Budget):** Barra de progresso visual para acompanhar o consumo do orçamento mensal definido.
+- **Alertas:** Indicadores visuais para contas vencidas ou vencendo hoje.
+- **Gráfico Histórico:** Visualização de despesas dos últimos 6 meses.
 
-Descrição: Uma aplicação de gerenciamento financeiro focada no controle de pagamentos e despesas. (Ver `metadata.json` para metadados do projeto.)
+### 💸 Gestão de Transações
+- **CRUD Completo:** Adicionar, editar e excluir pagamentos.
+- **Parcelamento Automático:** Ao cadastrar uma compra parcelada (ex: 10x), o sistema oferece a opção de gerar automaticamente todos os lançamentos futuros com as datas corretas.
+- **Filtros Avançados:** Pesquisa por texto, status, tipo de conta e categoria.
+- **Exportação:** Exportação dos dados filtrados para **CSV**.
 
-## Recursos
+### 📅 Calendário e Prazos
+- **Visualização Mensal:** Calendário interativo mostrando os vencimentos de cada dia.
+- **Status por Cor:** Identificação rápida de contas pagas (cinza), pendentes (amarelo) e atrasadas (vermelho).
+- **Lista de "A Vencer":** View dedicada para contas pendentes ordenadas por urgência.
 
-- Visualizar contas por status (a vencer, vencido, pago)
-- Cadastro/edição de transações (modal de transação)
-- Dashboard com gráficos usando Recharts
-- Visualização por calendário
-- Relatórios básicos de despesas
-- Notificações (componente `Toast`)
+### ⚙️ Configurações e Personalização
+- **Categorias Dinâmicas:** Crie e remova categorias personalizadas para organizar suas finanças.
+- **Dark Mode:** Tema escuro completo para conforto visual, persistido nas preferências do usuário.
+- **Responsividade:** Sidebar adaptável para dispositivos móveis e desktop.
 
-## Tecnologias
+---
 
-- React 18
-- Vite (build/dev server)
-- TypeScript
-- TailwindCSS + PostCSS
-- Recharts (gráficos)
-- gh-pages (deploy para GitHub Pages)
+## 🚀 Tecnologias Utilizadas
 
-Versões (conforme `package.json`):
+- **Core:** React 18, TypeScript
+- **Build Tool:** Vite
+- **Estilização:** Tailwind CSS
+- **Gráficos:** Recharts
+- **Ícones:** SVG Personalizados (Componentes React)
+- **Persistência:** LocalStorage (Os dados ficam salvos no navegador do usuário)
 
-- react ^18.2.0
-- react-dom ^18.2.0
-- recharts ^2.12.7
-- vite ^5.2.0
-- typescript ^5.2.2
-- tailwindcss ^3.4.3
+---
 
-## Pré-requisitos
+## 📦 Como Rodar o Projeto
 
-- Node.js (recomendado >= 16)
-- npm (ou pnpm/yarn — comandos documentados usam npm)
+Pré-requisitos: Certifique-se de ter o **Node.js** instalado.
 
-Recomendo usar o Node Version Manager (nvm) para gerenciar versões de Node se tiver múltiplos projetos.
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/seu-usuario/alecrim.git
+   cd alecrim
+   ```
 
-## Instalação rápida
+2. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
 
-No diretório do projeto (`pagamentos`):
+3. **Inicie o servidor de desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
 
-```powershell
-npm install
-```
+4. **Acesse no navegador:**
+   O terminal exibirá o link, geralmente `http://localhost:5173`.
 
-Depois, iniciar em modo desenvolvimento:
+---
 
-```powershell
-npm run dev
-```
-
-Abra http://localhost:5173 (ou a porta indicada no terminal) no navegador.
-
-## Scripts disponíveis
-
-Todos os scripts vêm de `package.json` e podem ser usados conforme abaixo:
-
-- `npm run dev` — inicia o servidor de desenvolvimento com Vite.
-- `npm run build` — gera os arquivos de produção em `dist`.
-- `npm run preview` — serve o build de produção localmente (útil para checar o build antes do deploy).
-- `npm run lint` — checagem de tipos via `tsc --noEmit`.
-- `npm run deploy` — publica `dist` usando `gh-pages`. Existe também `predeploy` que roda `npm run build` automaticamente.
-
-Exemplos (PowerShell):
-
-```powershell
-# desenvolvimento
-npm run dev
-
-# build e verificação
-npm run build
-npm run preview
-
-# publicar (GitHub Pages)
+## 🖼️ Estrutura do Projeto
 
 ```
-
-## Configurações importantes
-
-- `vite.config.ts` define `base: '/pagamentos/'`. Isso é importante se você for publicar o site em GitHub Pages sob `https://<usuario>.github.io/pagamentos/`. Se for publicar em outro caminho ou domínio (ex.: raiz do domínio), ajuste `base` ou remova-o.
-- `tailwind.config.js` e `postcss.config.js` controlam estilos; o projeto já inclui essas dependências.
-
-## Estrutura do projeto (resumida)
-
-- `index.html` — documento principal
-- `index.tsx` / `App.tsx` — ponto de entrada React
-- `components/` — componentes e views (Dashboard, TransactionsView, CalendarView, Toast, TransactionModal etc.)
-- `services/` — `api.ts`, `notificationService.ts`
-- `styles` / `index.css` — tailwind / estilos globais
-- `vite.config.ts`, `tsconfig.json`, `package.json` — configurações do projeto
-
-Lista de arquivos relevantes:
-
-- `components/AccountsDueView.tsx`
-- `components/CalendarView.tsx`
-- `components/Dashboard.tsx`
-- `components/TransactionsView.tsx`
-- `components/TransactionModal.tsx`
-- `services/api.ts`
-- `services/notificationService.ts`
-
-## Deploy (GitHub Pages)
-
-O projeto está preparado para publicar no GitHub Pages usando `gh-pages`.
-
-Passos:
-
-```powershell
-npm run build
-npm run deploy
+src/
+├── components/       # Componentes de UI (Views, Modais, Cards)
+│   ├── Dashboard.tsx
+│   ├── TransactionModal.tsx
+│   ├── ...
+├── services/         # Lógica de API e Notificações
+│   ├── api.ts        # Simulação de backend com LocalStorage
+│   └── notificationService.ts
+├── App.tsx           # Componente Raiz e Roteamento
+├── types.ts          # Definições de Tipos TypeScript
+└── main.tsx          # Ponto de entrada
 ```
 
-Observações e dicas:
+---
 
-- `vite.config.ts` com `base: '/pagamentos/'` faz com que os arquivos sejam referenciados com esse prefixo. Ajuste se seu repositório tiver outro nome ou se usar um domínio customizado.
-- O comando `npm run deploy` executa `gh-pages -d dist` (veja `package.json`). O pacote `gh-pages` cria/atualiza a branch `gh-pages` automaticamente.
-- Se quiser publicar na raiz do domínio (`https://username.github.io/`), altere `base` para `'/'` e atualize os links conforme necessário.
+## 💡 Dicas de Uso
 
-## Dicas de desenvolvimento
+1. **Primeiro Acesso:** O sistema carrega alguns dados de exemplo automaticamente. Você pode excluí-los e começar do zero.
+2. **Defina seu Orçamento:** Vá em "Configurações" e defina sua meta de gastos mensal para ativar a barra de progresso no Dashboard.
+3. **Parcelas:** Ao adicionar uma conta "Não Recorrente" com parcelas (ex: Total 3), marque a caixa "Gerar automaticamente..." para criar os lançamentos dos meses seguintes de uma só vez.
 
-- Rodar `npm run lint` antes de abrir um PR para garantir que não haja erros de digitação TypeScript.
-- Use o modo strict do TypeScript durante o desenvolvimento para capturar problemas cedo.
-- VSCode: instalar extensões recomendadas — ESLint, Prettier, Tailwind CSS IntelliSense, TypeScript React.
+---
 
-## Problemas comuns / Troubleshooting
+## 📄 Licença
 
-- Erro de assets 404 após deploy:
-	- Verifique o `base` em `vite.config.ts` e confirme o caminho do GitHub Pages.
-	- Se usar um domínio customizado, confirme a configuração do DNS e o arquivo `CNAME` (se necessário).
-
-- Porta ocupada ao rodar `npm run dev`:
-	- Mude a porta via `vite` CLI: `vite --port 3000` ou configure no `vite.config.ts`.
+Este projeto está sob a licença MIT. Sinta-se à vontade para usar e modificar.

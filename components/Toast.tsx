@@ -1,4 +1,6 @@
+
 import React, { useEffect } from 'react';
+// fix: Correct import path for ToastMessage type
 import { ToastMessage } from '../types';
 import { CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, CloseIcon } from './Icons';
 
@@ -8,9 +10,9 @@ interface ToastProps {
 }
 
 const icons = {
-  success: <CheckCircleIcon className="w-6 h-6 text-success" />,
-  error: <ExclamationCircleIcon className="w-6 h-6 text-danger" />,
-  info: <InformationCircleIcon className="w-6 h-6 text-primary" />,
+  success: <CheckCircleIcon className="w-6 h-6 text-success dark:text-success-light" />,
+  error: <ExclamationCircleIcon className="w-6 h-6 text-danger dark:text-danger-light" />,
+  info: <InformationCircleIcon className="w-6 h-6 text-primary dark:text-primary-light" />,
 };
 
 const Toast: React.FC<ToastProps> = ({ message, onDismiss }) => {
@@ -25,19 +27,19 @@ const Toast: React.FC<ToastProps> = ({ message, onDismiss }) => {
   }, [message.id, onDismiss]);
 
   return (
-    <div className="bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in-right max-w-sm">
+    <div className="bg-white dark:bg-slate-800 shadow-lg dark:shadow-slate-900/50 rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 dark:ring-white/10 overflow-hidden animate-fade-in-right max-w-sm transition-colors">
       <div className="p-4">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             {icons[message.type]}
           </div>
           <div className="ml-3 w-0 flex-1 pt-0.5">
-            <p className="text-sm font-medium text-slate-900">{message.message}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">{message.message}</p>
           </div>
           <div className="ml-4 flex-shrink-0 flex">
             <button
               onClick={() => onDismiss(message.id)}
-              className="bg-white rounded-md inline-flex text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              className="bg-white dark:bg-slate-800 rounded-md inline-flex text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-slate-800"
             >
               <span className="sr-only">Close</span>
               <CloseIcon className="h-5 w-5" />

@@ -1,329 +1,225 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Transaction, NewTransaction, AccountCategory, TransactionStatus } from '../types';
-import { PencilIcon, TrashIcon, PlusIcon, DownloadIcon, SearchIcon, ClipboardListIcon } from './Icons';
-import TransactionModal from './TransactionModal';
+
+// components/TransactionsView.tsx
+import React, { useState, useMemo } from 'react';
+import { Transaction, TransactionCategory } from '../types';
+import { PlusIcon, PencilIcon, TrashIcon, SearchIcon, DownloadIcon, RepeatIcon } from './Icons';
 
 interface TransactionsViewProps {
   transactions: Transaction[];
   categories: string[];
-  onSave: (transaction: NewTransaction | (Partial<NewTransaction> & { id: string })) => void;
-  onDelete: (id: string) => void;
-  initialFilters?: any | null;
-  onInitialFiltersApplied?: () => void;
+  onEditTransaction: (transaction: Transaction | null) => void;
+  onDelete: (id: string) => Promise<void>;
 }
 
-const ITEMS_PER_PAGE = 10;
+const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categories, onEditTransaction, onDelete }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [accountTypeFilter, setAccountTypeFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
+      const searchMatch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          t.category.toLowerCase().includes(searchTerm.toLowerCase());
+      const statusMatch = statusFilter === 'all' || t.status === statusFilter;
+      const accountTypeMatch = accountTypeFilter === 'all' || t.accountType === accountTypeFilter;
+      const categoryMatch = categoryFilter === 'all' || t.category === categoryFilter;
+      
+      const transactionDate = t.dueDate;
+      const startDateMatch = !startDate || transactionDate >= startDate;
+      const endDateMatch = !endDate || transactionDate <= endDate;
 
-const StatusIndicator: React.FC<{ status: TransactionStatus }> = ({ status }) => {
-    const statusConfig = {
-        [TransactionStatus.PAID]: { label: 'Pago', color: 'bg-success' },
-        [TransactionStatus.PENDING]: { label: 'Pendente', color: 'bg-warning' },
-    };
-    const { label, color } = statusConfig[status] || { label: 'N/A', color: 'bg-slate-400' };
-
-    return (
-        <div className="flex items-center justify-center">
-            <span className={`h-2 w-2 rounded-full ${color} mr-2`}></span>
-            <span className="text-sm text-slate-700">{label}</span>
-        </div>
-    );
-};
-
-const TransactionRow: React.FC<{ transaction: Transaction; onEdit: (t: Transaction) => void; onDelete: (id: string) => void; }> = ({ transaction, onEdit, onDelete }) => {
-    const formattedAmount = transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const accountTypeLabel = transaction.accountType === AccountCategory.RECURRING ? 'Recorrente' : 'Não Recorrente';
-    
-    return (
-        <tr className="border-b border-slate-200 hover:bg-slate-50/50">
-            <td className="py-4 px-6 text-sm text-slate-600">{new Date(transaction.date).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', year: 'numeric'})}</td>
-            <td className="py-4 px-6 text-sm font-medium text-slate-800">{transaction.description}</td>
-            <td className="py-4 px-6 text-sm text-slate-600">{transaction.category}</td>
-            <td className="py-4 px-6 text-sm text-center text-slate-600">{accountTypeLabel}</td>
-            <td className={`py-4 px-6 text-sm text-right font-semibold text-slate-800`}>- R$ {formattedAmount}</td>
-            <td className="py-4 px-6 text-sm text-center">
-                <StatusIndicator status={transaction.status} />
-            </td>
-            <td className="py-4 px-6 text-sm text-center text-slate-600">{transaction.installments ? `${transaction.installments.current}/${transaction.installments.total}` : '-'}</td>
-            <td className="py-4 px-6 text-center">
-                <div className="flex item-center justify-center gap-2">
-                    <button onClick={() => onEdit(transaction)} className="text-slate-500 hover:text-primary transition-colors"><PencilIcon className="w-4 h-4" /></button>
-                    <button onClick={() => onDelete(transaction.id)} className="text-slate-500 hover:text-danger transition-colors"><TrashIcon className="w-4 h-4" /></button>
-                </div>
-            </td>
-        </tr>
-    );
-};
-
-const TransactionsView: React.FC<TransactionsViewProps> = ({ transactions, categories, onSave, onDelete, initialFilters, onInitialFiltersApplied }) => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
-    const [filters, setFilters] = useState({
-        description: '',
-        category: 'all',
-        accountType: 'all',
-        status: 'all',
-        startDate: '',
-        endDate: '',
+      return searchMatch && statusMatch && accountTypeMatch && categoryMatch && startDateMatch && endDateMatch;
     });
-    const [currentPage, setCurrentPage] = useState(1);
-    
-     useEffect(() => {
-        if (initialFilters) {
-            const defaultFilters = {
-                description: '',
-                category: 'all',
-                accountType: 'all',
-                status: 'all',
-                startDate: '',
-                endDate: '',
-            };
-            setFilters({ ...defaultFilters, ...initialFilters });
-            setCurrentPage(1);
-            if (onInitialFiltersApplied) {
-                onInitialFiltersApplied();
-            }
-        }
-    }, [initialFilters, onInitialFiltersApplied]);
+  }, [transactions, searchTerm, statusFilter, accountTypeFilter, categoryFilter, startDate, endDate]);
+  
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredTransactions, currentPage]);
 
-    const inputStyles = "block w-full border border-slate-300 rounded-lg shadow-sm py-2.5 px-3 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition";
-
-    const handleOpenModal = (transaction: Transaction | null) => {
-        setTransactionToEdit(transaction);
-        setIsModalOpen(true);
-    };
-
-    const handleCloseModal = () => {
-        setTransactionToEdit(null);
-        setIsModalOpen(false);
-    };
-    
-    const handleSave = (transaction: NewTransaction | (Partial<NewTransaction> & { id: string })) => {
-        onSave(transaction);
-        handleCloseModal();
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta transação?')) {
+      await onDelete(id);
     }
-    
-    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFilters(prevFilters => ({
-            ...prevFilters,
-            [name]: value,
-        }));
-        setCurrentPage(1);
-    };
+  };
+  
+  const currencyFormatter = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const dateFormatter = (dateString: string) => new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 
-    const handleClearFilters = () => {
-        setFilters({
-            description: '',
-            category: 'all',
-            accountType: 'all',
-            status: 'all',
-            startDate: '',
-            endDate: '',
-        });
-        setCurrentPage(1);
-    };
+  const getStatusChip = (status: 'Pago' | 'Pendente') => {
+      const baseClasses = "px-2.5 py-0.5 text-xs font-semibold rounded-full inline-block";
+      if (status === 'Pago') {
+          return <span className={`${baseClasses} bg-success/20 text-success dark:text-success-light`}>Pago</span>
+      }
+      return <span className={`${baseClasses} bg-warning/20 text-yellow-800 dark:text-warning`}>Pendente</span>
+  }
+  
+  const handleExportCSV = () => {
+        const headers = ["Data do Pagamento", "Descrição", "Categoria", "Tipo de Conta", "Valor", "Status", "Parcela", "Data de Vencimento"];
+        const rows = filteredTransactions.map(t => [
+            dateFormatter(t.date),
+            `"${t.description.replace(/"/g, '""')}"`,
+            t.category,
+            t.accountType,
+            t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            t.status,
+            t.installments || '',
+            dateFormatter(t.dueDate)
+        ].join(';'));
 
-    const filteredTransactions = useMemo(() => {
-        return transactions.filter(transaction => {
-            const descriptionMatch = !filters.description || transaction.description.toLowerCase().includes(filters.description.toLowerCase());
-            const categoryMatch = filters.category === 'all' || transaction.category === filters.category;
-            const accountTypeMatch = filters.accountType === 'all' || transaction.accountType === filters.accountType;
-            const statusMatch = filters.status === 'all' || transaction.status === filters.status;
-            
-            const transactionDate = transaction.date.substring(0, 10);
-            const startDateMatch = !filters.startDate || transactionDate >= filters.startDate;
-            const endDateMatch = !filters.endDate || transactionDate <= filters.endDate;
-
-            return descriptionMatch && categoryMatch && accountTypeMatch && statusMatch && startDateMatch && endDateMatch;
-        });
-    }, [transactions, filters]);
-
-    const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
-
-    const paginatedTransactions = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        const endIndex = startIndex + ITEMS_PER_PAGE;
-        return filteredTransactions.slice(startIndex, endIndex);
-    }, [filteredTransactions, currentPage]);
-    
-    const handlePrevPage = () => {
-        setCurrentPage(prev => Math.max(prev - 1, 1));
-    };
-
-    const handleNextPage = () => {
-        setCurrentPage(prev => Math.min(prev + 1, totalPages));
-    };
-
-
-    const totalExpenses = useMemo(() => {
-        return filteredTransactions.reduce((acc, t) => acc + t.amount, 0);
-    }, [filteredTransactions]);
-    
-    const handleExportCSV = () => {
-        if (filteredTransactions.length === 0) {
-            alert("Não há pagamentos para exportar com os filtros atuais.");
-            return;
-        }
-
-        const headers = ["Data", "Descrição", "Categoria", "Tipo de Conta", "Valor", "Status", "Parcela"];
-        let csvContent = headers.join(",") + "\n";
-
-        filteredTransactions.forEach(t => {
-            const row = [
-                new Date(t.date).toLocaleDateString('pt-BR'),
-                `"${t.description.replace(/"/g, '""')}"`,
-                t.category,
-                t.accountType === AccountCategory.RECURRING ? 'Recorrente' : 'Não Recorrente',
-                t.amount.toLocaleString('pt-BR', {style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2}),
-                t.status === TransactionStatus.PENDING ? 'Pendente' : 'Pago',
-                t.installments ? `${t.installments.current}/${t.installments.total}` : ''
-            ];
-            csvContent += row.join(",") + "\n";
-        });
-
+        const csvContent = `${headers.join(';')}\n${rows.join('\n')}`;
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", "pagamentos_filtrados.csv");
-        link.style.visibility = 'hidden';
+        link.setAttribute("download", `transacoes.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    };
+  };
 
-    return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="text-3xl font-bold text-slate-800">Pagamentos</h1>
-                <button onClick={() => handleOpenModal(null)} className="bg-primary text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 shrink-0 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark">
-                    <PlusIcon />
-                    Novo Pagamento
-                </button>
+  const selectStyles = "block w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg shadow-sm py-2.5 px-3 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition-colors";
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-white transition-colors">Meus Pagamentos</h1>
+        <div className="flex w-full sm:w-auto items-center gap-2">
+            <button
+                onClick={handleExportCSV}
+                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-2.5 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 shrink-0 shadow-sm"
+            >
+                <DownloadIcon />
+            </button>
+            <button
+                onClick={() => onEditTransaction(null)}
+                className="bg-primary text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 shrink-0 shadow-sm"
+            >
+                <PlusIcon />
+                Novo
+            </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+            <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <input
+                    type="text"
+                    placeholder="Pesquisar..."
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                    className="block w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg shadow-sm py-2.5 pl-10 pr-3 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary/80 focus:border-primary transition-colors"
+                />
             </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-card">
-                 <h3 className="text-base font-medium text-slate-500">Despesas no Período</h3>
-                 <p className="text-3xl font-bold mt-2 text-danger">
-                     {totalExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                 </p>
-             </div>
-            
-            <div className="bg-white p-6 rounded-xl shadow-card">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5">
-                    <h3 className="text-lg font-semibold text-slate-800">Filtrar Pagamentos</h3>
-                    <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                        <button onClick={handleClearFilters} className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">Limpar Filtros</button>
-                        <button onClick={handleExportCSV} className="bg-slate-700 text-white font-semibold py-2 px-3 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm">
-                            <DownloadIcon className="w-4 h-4" />
-                            Exportar
-                        </button>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="col-span-1 md:col-span-2 lg:col-span-5">
-                        <label htmlFor="description" className="block text-sm font-medium text-slate-600 mb-1">Descrição</label>
-                        <input type="text" name="description" id="description" value={filters.description} onChange={handleFilterChange} className={inputStyles} placeholder="Ex: Conta de Luz, Aluguel..."/>
-                    </div>
-                    <div className="col-span-1">
-                        <label htmlFor="category" className="block text-sm font-medium text-slate-600 mb-1">Categoria</label>
-                        <select name="category" id="category" value={filters.category} onChange={handleFilterChange} className={inputStyles}>
-                            <option value="all">Todas</option>
-                            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
-                    </div>
-                    <div className="col-span-1">
-                        <label htmlFor="accountType" className="block text-sm font-medium text-slate-600 mb-1">Tipo de Conta</label>
-                        <select name="accountType" id="accountType" value={filters.accountType} onChange={handleFilterChange} className={inputStyles}>
-                            <option value="all">Todos</option>
-                            <option value={AccountCategory.RECURRING}>Recorrente</option>
-                            <option value={AccountCategory.NON_RECURRING}>Não Recorrente</option>
-                        </select>
-                    </div>
-                    <div className="col-span-1">
-                        <label htmlFor="status" className="block text-sm font-medium text-slate-600 mb-1">Status</label>
-                        <select name="status" id="status" value={filters.status} onChange={handleFilterChange} className={inputStyles}>
-                            <option value="all">Todos</option>
-                            <option value={TransactionStatus.PAID}>Pago</option>
-                            <option value={TransactionStatus.PENDING}>Pendente</option>
-                        </select>
-                    </div>
-                    <div className="col-span-1">
-                        <label htmlFor="startDate" className="block text-sm font-medium text-slate-600 mb-1">Data Início</label>
-                        <input type="date" name="startDate" id="startDate" value={filters.startDate} onChange={handleFilterChange} className={inputStyles} />
-                    </div>
-                    <div className="col-span-1">
-                        <label htmlFor="endDate" className="block text-sm font-medium text-slate-600 mb-1">Data Fim</label>
-                        <input type="date" name="endDate" id="endDate" value={filters.endDate} onChange={handleFilterChange} className={inputStyles} />
-                    </div>
-                </div>
+            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }} className={selectStyles}>
+                <option value="all">Todo Status</option>
+                <option value="Pago">Pago</option>
+                <option value="Pendente">Pendente</option>
+            </select>
+            <select value={accountTypeFilter} onChange={e => { setAccountTypeFilter(e.target.value); setCurrentPage(1); }} className={selectStyles}>
+                <option value="all">Todo Tipo</option>
+                <option value="Recorrente">Recorrente</option>
+                <option value="Não Recorrente">Não Recorrente</option>
+            </select>
+             <select value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setCurrentPage(1); }} className={selectStyles}>
+                <option value="all">Toda Categoria</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <div className="relative">
+                <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
+                    className={selectStyles}
+                    title="Data Inicial de Vencimento"
+                />
             </div>
+            <div className="relative">
+                <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
+                    className={selectStyles}
+                    title="Data Final de Vencimento"
+                />
+            </div>
+      </div>
 
-            {filteredTransactions.length > 0 ? (
-                <>
-                <div className="bg-white rounded-xl shadow-card overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full bg-white">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="py-3 px-6 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Data</th>
-                                    <th className="py-3 px-6 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Descrição</th>
-                                    <th className="py-3 px-6 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Categoria</th>
-                                    <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo</th>
-                                    <th className="py-3 px-6 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Valor</th>
-                                    <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Parcelas</th>
-                                    <th className="py-3 px-6 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200">
-                                {paginatedTransactions.map(transaction => (
-                                    <TransactionRow key={transaction.id} transaction={transaction} onEdit={handleOpenModal} onDelete={onDelete} />
-                                ))}
-                            </tbody>
-                        </table>
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-card overflow-hidden border border-slate-100 dark:border-slate-800 transition-colors">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+            <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800/50">
+              <tr>
+                <th scope="col" className="px-6 py-3">Descrição</th>
+                <th scope="col" className="px-6 py-3">Valor</th>
+                <th scope="col" className="px-6 py-3">Status</th>
+                <th scope="col" className="px-6 py-3">Vencimento</th>
+                <th scope="col" className="px-6 py-3">Tipo</th>
+                <th scope="col" className="px-6 py-3">Parcela</th>
+                <th scope="col" className="px-6 py-3 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedTransactions.map((t) => (
+                <tr key={t.id} className="bg-white dark:bg-slate-900 border-b dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
+                    <div>{t.description}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{t.category}</div>
+                  </td>
+                  <td className={`px-6 py-4 font-semibold text-danger dark:text-danger-light`}>
+                    {currencyFormatter(t.amount)}
+                  </td>
+                  <td className="px-6 py-4">{getStatusChip(t.status)}</td>
+                  <td className="px-6 py-4">{dateFormatter(t.dueDate)}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1.5">
+                        {t.accountType === 'Recorrente' && (
+                            <RepeatIcon className="w-4 h-4 text-primary dark:text-primary-light" title="Pagamento Recorrente" />
+                        )}
+                        <span>{t.accountType}</span>
                     </div>
-                </div>
-                 <div className="flex justify-between items-center mt-6">
-                    <button onClick={handlePrevPage} disabled={currentPage === 1} className="bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  </td>
+                  <td className="px-6 py-4">{t.installments || '-'}</td>
+                  <td className="px-6 py-4 text-right">
+                    <button onClick={() => onEditTransaction(t)} className="text-primary hover:text-primary-hover dark:text-primary-light mr-4"><PencilIcon /></button>
+                    <button onClick={() => handleDelete(t.id)} className="text-danger hover:text-danger-hover dark:text-danger-light"><TrashIcon /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {filteredTransactions.length === 0 && (
+            <div className="text-center py-16 text-slate-500 dark:text-slate-400">
+                 <p>Nenhum pagamento encontrado para os filtros selecionados.</p>
+            </div>
+        )}
+        {totalPages > 1 && (
+            <div className="flex justify-between items-center p-4 border-t dark:border-slate-800">
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                    Página {currentPage} de {totalPages}
+                </span>
+                <div className="flex gap-2">
+                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         Anterior
                     </button>
-                    <span className="text-sm text-slate-500">
-                        Página {currentPage} de {totalPages}
-                    </span>
-                    <button onClick={handleNextPage} disabled={currentPage === totalPages} className="bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         Próxima
                     </button>
                 </div>
-                </>
-            ) : (
-                <div className="text-center py-16 bg-white rounded-xl shadow-card">
-                    {transactions.length > 0 ? (
-                        <>
-                            <SearchIcon className="mx-auto h-12 w-12 text-slate-400" />
-                            <h3 className="mt-4 text-lg font-semibold text-slate-800">Nenhum Resultado Encontrado</h3>
-                            <p className="mt-2 text-sm text-slate-500">Tente ajustar seus filtros para encontrar o que procura.</p>
-                        </>
-                    ) : (
-                         <>
-                            <ClipboardListIcon className="mx-auto h-12 w-12 text-slate-400" />
-                            <h3 className="mt-4 text-lg font-semibold text-slate-800">Nenhum Pagamento Adicionado</h3>
-                            <p className="mt-2 text-sm text-slate-500">Comece adicionando seu primeiro pagamento para vê-lo aqui.</p>
-                         </>
-                    )}
-                </div>
-            )}
-            
-            <TransactionModal 
-                isOpen={isModalOpen} 
-                onClose={handleCloseModal}
-                onSave={handleSave}
-                transactionToEdit={transactionToEdit}
-                categories={categories}
-            />
-        </div>
-    );
+            </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default TransactionsView;

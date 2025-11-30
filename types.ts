@@ -1,41 +1,44 @@
 
-export enum AccountCategory {
-  RECURRING = 'recurring',
-  NON_RECURRING = 'non_recurring',
-}
+// types.ts
+export type TransactionCategory = string;
+export type TransactionStatus = 'Pago' | 'Pendente';
+export type AccountType = 'Recorrente' | 'Não Recorrente';
 
-export enum TransactionStatus {
-  PAID = 'paid',
-  PENDING = 'pending',
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password?: string; // Nota: Em um app real, nunca armazene senhas em texto puro no frontend/localStorage.
 }
 
 export interface Transaction {
   id: string;
   description: string;
   amount: number;
-  date: string; // ISO string format
-  category: string;
-  accountType: AccountCategory;
-  status: TransactionStatus; // All transactions are expenses, so status is mandatory
-  installments?: {
-    current: number;
-    total: number;
-  };
-  attachment?: string; // Filename of the uploaded PDF
+  date: string; // Data da transação/pagamento
+  dueDate: string; // Data de vencimento
+  category: TransactionCategory;
+  status: TransactionStatus;
+  accountType: AccountType;
+  installments?: string; // Ex: "1/3"
 }
 
-export type NewTransaction = Omit<Transaction, 'id'>;
-
-export enum View {
-  DASHBOARD = 'dashboard',
-  TRANSACTIONS = 'transactions',
-  REPORTS = 'reports',
-  ACCOUNTS_DUE = 'accounts_due',
-  CALENDAR = 'calendar',
+export interface NewTransaction {
+    description: string;
+    amount: number;
+    date: string;
+    dueDate: string;
+    category: TransactionCategory;
+    status: TransactionStatus;
+    accountType: AccountType;
+    installments?: string;
 }
 
-export type ToastMessage = {
+
+export type ToastType = 'success' | 'error' | 'info';
+
+export interface ToastMessage {
   id: number;
   message: string;
-  type: 'success' | 'error' | 'info';
-};
+  type: ToastType;
+}

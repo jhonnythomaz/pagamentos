@@ -4,24 +4,85 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Organizador de Pagamentos</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "vite": "https://aistudiocdn.com/vite@^7.1.10",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.0.4"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
-</head>
+    <title>Alecrim</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+            },
+            colors: {
+              primary: {
+                DEFAULT: "hsl(221, 83%, 53%)", // Indigo 500
+                hover: "hsl(221, 83%, 48%)",
+                light: "hsl(221, 83%, 95%)",
+                dark: "hsl(221, 83%, 30%)",
+              },
+              danger: {
+                DEFAULT: "hsl(0, 72%, 51%)",
+                light: "hsl(0, 72%, 95%)",
+                dark: "hsl(0, 72%, 80%)",
+              }, // Red 600
+              success: {
+                DEFAULT: "hsl(142, 69%, 45%)",
+                light: "hsl(142, 69%, 95%)",
+                dark: "hsl(142, 69%, 80%)",
+              }, // Green 600
+              warning: {
+                DEFAULT: "hsl(38, 92%, 50%)",
+                light: "hsl(38, 92%, 95%)",
+                dark: "hsl(38, 92%, 80%)",
+              }, // Amber 500
+              slate: {
+                50: "#f8fafc",
+                100: "#f1f5f9",
+                200: "#e2e8f0",
+                300: "#cbd5e1",
+                400: "#94a3b8",
+                500: "#64748b",
+                600: "#475569",
+                700: "#334155",
+                800: "#1e293b",
+                900: "#0f172a",
+              },
+            },
+            boxShadow: {
+              card: "0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07)",
+            },
+            animation: {
+              "fade-in-right": "fade-in-right 0.5s ease-out forwards",
+            },
+            keyframes: {
+              "fade-in-right": {
+                "0%": { opacity: "0", transform: "translateX(20px)" },
+                "100%": { opacity: "1", transform: "translateX(0)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://aistudiocdn.com/react@^19.2.0",
+          "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+          "react/": "https://aistudiocdn.com/react@^19.2.0/",
+          "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
+          "vite": "https://aistudiocdn.com/vite@^7.2.4",
+          "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
+        }
+      }
+    </script>
+  </head>
   <body class="h-full bg-slate-50">
     <div id="root" class="h-full"></div>
     <script type="module" src="/index.tsx"></script>

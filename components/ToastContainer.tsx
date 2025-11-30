@@ -1,4 +1,5 @@
 import React from 'react';
+// fix: Correct import path for ToastMessage type
 import { ToastMessage } from '../types';
 import Toast from './Toast';
 
