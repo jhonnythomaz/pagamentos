@@ -1,7 +1,7 @@
 // services/api.ts
 import { Transaction, NewTransaction } from "../types";
 
-const API_URL = "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 // --- MOCKS (Dados locais para coisas que o banco ainda não tem tabela) ---
 // Como seu banco só tem tabela de pagamentos, vamos guardar categorias e orçamento na memória do navegador por enquanto.

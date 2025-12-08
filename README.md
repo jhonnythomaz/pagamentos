@@ -18,7 +18,6 @@ O projeto foi construído seguindo a arquitetura moderna de separação entre cl
 ## ⚙️ Pré-requisitos
 
 Para rodar o projeto, você precisa ter instalado:
-
 - [Node.js](https://nodejs.org/) (Versão 16 ou superior)
 - NPM (Vem com o Node)
 
@@ -27,11 +26,9 @@ Para rodar o projeto, você precisa ter instalado:
 ## 🔧 Configuração e Instalação
 
 ### 1. Clonar e Instalar
-
 Baixe o repositório e instale as dependências:
 
 ```bash
 git clone https://github.com/jhonnythomaz/pagamentos.git
 cd pagamentos
 npm install
-```
