@@ -3,15 +3,18 @@
 export interface User {
   id: number;
   email: string;
-  nome: string;
+  name?: string;
+  nome?: string;
 }
 
-// Removi o "export" daqui do começo
+// AQUI ESTÁ A CORREÇÃO: Usa a URL da Vercel ou Localhost dependendo de onde está rodando
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
 const authService = {
   async login(email: string, senha: string): Promise<User> {
     try {
-      // Chama o seu servidor local na porta 3000
-      const response = await fetch("http://localhost:3000/api/login", {
+      // Agora ele usa a variável API_URL, não mais o localhost fixo
+      const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -25,7 +28,6 @@ const authService = {
         throw new Error(data.mensagem || "Erro ao fazer login");
       }
 
-      // Se deu certo, salva os dados do usuário no navegador e retorna
       localStorage.setItem("user", JSON.stringify(data.usuario));
       return data.usuario;
     } catch (error) {
@@ -46,7 +48,4 @@ const authService = {
   },
 };
 
-// AQUI ESTÁ A CORREÇÃO MÁGICA:
 export default authService;
-// Mantivemos a exportação nomeada também por segurança caso outro arquivo use
-export { authService };
