@@ -16,6 +16,17 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["."],
-  "references": []
+  "include": ["./**/*.ts", "./**/*.tsx"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.tsx",
+    "**/*.test.ts",
+    "__tests__",
+    "cypress",
+    "cypress.config.ts",
+    "server.cjs",
+    "setup-db.cjs",
+    "atualizar-tabela.cjs"
+  ]
 }

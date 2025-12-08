@@ -340,6 +340,7 @@ const App: React.FC = () => {
                 Alecrim
               </h1>
               <p className="text-xs text-slate-500 truncate max-w-[120px]">
+                {user.name || user.nome}
                 {user.name}
               </p>
             </div>

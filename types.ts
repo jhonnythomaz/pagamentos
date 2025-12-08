@@ -1,14 +1,13 @@
-
 // types.ts
 export type TransactionCategory = string;
-export type TransactionStatus = 'Pago' | 'Pendente';
-export type AccountType = 'Recorrente' | 'Não Recorrente';
+export type TransactionStatus = "Pago" | "Pendente";
+export type AccountType = "Recorrente" | "Não Recorrente";
 
 export interface User {
-  id: string;
-  name: string;
+  id: number;
   email: string;
-  password?: string; // Nota: Em um app real, nunca armazene senhas em texto puro no frontend/localStorage.
+  name?: string; // Opcional
+  nome?: string; // Opcional (vem do banco)
 }
 
 export interface Transaction {
@@ -24,18 +23,17 @@ export interface Transaction {
 }
 
 export interface NewTransaction {
-    description: string;
-    amount: number;
-    date: string;
-    dueDate: string;
-    category: TransactionCategory;
-    status: TransactionStatus;
-    accountType: AccountType;
-    installments?: string;
+  description: string;
+  amount: number;
+  date: string;
+  dueDate: string;
+  category: TransactionCategory;
+  status: TransactionStatus;
+  accountType: AccountType;
+  installments?: string;
 }
 
-
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = "success" | "error" | "info";
 
 export interface ToastMessage {
   id: number;
