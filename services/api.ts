@@ -1,23 +1,9 @@
-// services/api.ts
 import { Transaction, NewTransaction } from "../types";
 
+// Define a URL da API (Render ou Localhost)
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-// --- MOCKS (Dados locais para coisas que o banco ainda não tem tabela) ---
-// Como seu banco só tem tabela de pagamentos, vamos guardar categorias e orçamento na memória do navegador por enquanto.
-let localCategories = [
-  "Alimentação",
-  "Moradia",
-  "Transporte",
-  "Lazer",
-  "Saúde",
-  "Educação",
-  "Salário",
-  "Investimentos",
-];
-let localBudget = 5000;
-
-// Função auxiliar para verificar erros da API
+// Função auxiliar de resposta
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -30,7 +16,8 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-// 1. LISTAR TRANSAÇÕES
+// --- TRANSAÇÕES (BANCO DE DADOS) ---
+
 export const getTransactions = async (): Promise<Transaction[]> => {
   try {
     const response = await fetch(`${API_URL}/transactions`);
@@ -41,7 +28,6 @@ export const getTransactions = async (): Promise<Transaction[]> => {
   }
 };
 
-// 2. ADICIONAR UMA TRANSAÇÃO
 export const addTransaction = async (
   transaction: NewTransaction
 ): Promise<Transaction> => {
@@ -53,42 +39,34 @@ export const addTransaction = async (
   return handleResponse(response);
 };
 
-// 3. ATUALIZAR TRANSAÇÃO (Por enquanto vamos simular deletando e criando de novo ou ignorando se o back não tiver PUT)
-// Como o backend simples que fizemos não tem rota PUT (update), vamos improvisar no futuro.
-// Por agora, para não quebrar, retornamos a própria transação.
 export const updateTransaction = async (
   transaction: Transaction
 ): Promise<Transaction> => {
-  // Se você quiser implementar o UPDATE no server.cjs depois, a chamada seria aqui.
-  // Por enquanto, fingimos que salvou para não dar erro na tela.
+  // Backend ainda não tem PUT, retornamos o objeto para atualizar a tela
   return transaction;
 };
 
-// 4. DELETAR TRANSAÇÃO
 export const deleteTransaction = async (id: string): Promise<void> => {
   await fetch(`${API_URL}/transactions/${id}`, {
     method: "DELETE",
   });
 };
 
-// 5. ADICIONAR MÚLTIPLAS (Para parcelas)
 export const addMultipleTransactions = async (
   transactions: NewTransaction[]
 ): Promise<Transaction[]> => {
-  // Como o backend não tem inserção em lote, vamos chamar um por um (Promise.all)
   const promises = transactions.map((t) => addTransaction(t));
   return Promise.all(promises);
 };
 
-// --- FUNÇÕES DE CATEGORIA E ORÇAMENTO (MOCKADAS NO FRONTEND) ---
+// --- CATEGORIAS (BANCO DE DADOS) ---
 
 export const getCategories = async (): Promise<string[]> => {
   try {
     const response = await fetch(`${API_URL}/categories`);
     return handleResponse(response);
   } catch (error) {
-    console.error("Erro ao buscar categorias:", error);
-    return ["Alimentação", "Moradia", "Outros"]; // Fallback se der erro
+    return ["Alimentação", "Moradia", "Lazer"]; // Fallback
   }
 };
 
@@ -102,7 +80,6 @@ export const addCategory = async (category: string): Promise<string[]> => {
 };
 
 export const deleteCategory = async (category: string): Promise<string[]> => {
-  // Passamos o nome na URL (encodeURIComponent protege se tiver espaços ou acentos)
   const response = await fetch(
     `${API_URL}/categories/${encodeURIComponent(category)}`,
     {
@@ -111,3 +88,19 @@ export const deleteCategory = async (category: string): Promise<string[]> => {
   );
   return handleResponse(response);
 };
+
+// --- ORÇAMENTO (LOCAL STORAGE - MOCK) ---
+// Restauramos essas funções para o App.tsx não quebrar
+
+export const getBudget = async (): Promise<number> => {
+  const saved = localStorage.getItem("user_budget");
+  return saved ? parseFloat(saved) : 5000;
+};
+
+export const setBudget = async (amount: number): Promise<number> => {
+  localStorage.setItem("user_budget", amount.toString());
+  return amount;
+};
+
+// Inicializador vazio para compatibilidade
+export const initApi = (userId: number) => {};
