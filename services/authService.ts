@@ -38,7 +38,6 @@ const authService = {
 
   logout() {
     localStorage.removeItem("user");
-    window.location.href = "/login";
   },
 
   getCurrentUser(): User | null {

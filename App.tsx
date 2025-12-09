@@ -91,11 +91,11 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    authService.logout();
-    setUser(null);
-    setTransactions([]);
-    setCategories([]);
-    setView("dashboard");
+    authService.logout(); // Limpa o storage
+    setUser(null); // O React detecta isso e mostra a tela de Login INSTANTANEAMENTE
+
+    // Limpa a URL para ficar bonita (apenas visual, sem recarregar)
+    window.history.pushState({}, "", "/");
   };
 
   const fetchData = async () => {
