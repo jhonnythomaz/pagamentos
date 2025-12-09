@@ -2,11 +2,11 @@
 export default {
   content: [
     "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
     "./*.{js,ts,jsx,tsx}", // Pega App.tsx e main.tsx na raiz
-    "./components/**/*.{js,ts,jsx,tsx}", // Pega tudo dentro de components
-    "./src/**/*.{js,ts,jsx,tsx}", // Pega src se existir
   ],
-  darkMode: "class", // Importante para o botão funcionar
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
