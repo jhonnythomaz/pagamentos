@@ -19,10 +19,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   const [budget, setBudget] = useState(currentBudget.toString());
 
   const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault(); // Impede recarregar a página
+    e.preventDefault();
+    console.log("CLICK! Botão Adicionar Categoria clicado."); // DEBUG
+    console.log("Valor do input:", newCategory); // DEBUG
+
     if (newCategory.trim()) {
-      onAddCategory(newCategory); // Chama a função que vai no Banco
-      setNewCategory(""); // Limpa o campo
+      console.log("Chamando função do pai...");
+      onAddCategory(newCategory);
+      setNewCategory("");
+    } else {
+      console.log("Input vazio, ignorando.");
     }
   };
 
@@ -42,6 +48,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
           Gerenciar Categorias
         </h3>
 
+        {/* FORMULÁRIO */}
         <form onSubmit={handleAdd} className="flex gap-2 mb-6">
           <input
             type="text"
@@ -51,25 +58,27 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             className="flex-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-4 py-2 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
-            type="submit"
-            className="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            type="submit" // Garante que envia o form
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
           >
             Adicionar
           </button>
         </form>
 
+        {/* Lista */}
         <div className="flex flex-wrap gap-2">
-          {categories.map((cat) => (
+          {categories.map((cat, index) => (
             <div
-              key={cat}
+              key={`${cat}-${index}`}
               className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-full"
             >
               <span className="text-slate-700 dark:text-slate-200 text-sm">
                 {cat}
               </span>
               <button
+                type="button"
                 onClick={() => onDeleteCategory(cat)}
-                className="text-slate-400 hover:text-red-500 transition-colors"
+                className="text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
               >
                 ×
               </button>
