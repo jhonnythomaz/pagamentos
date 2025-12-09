@@ -1,80 +1,90 @@
-// server.cjs
-require("dotenv").config(); // CARREGA O ARQUIVO .ENV
+require("dotenv").config(); // Carrega variáveis de ambiente
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 
 const app = express();
-app.use(express.json());
-app.use(cors());
 
-// --- CONEXÃO COM O BANCO ---
-// Agora a senha vem do arquivo .env para o GitHub não bloquear
+// Middlewares
+app.use(express.json());
+app.use(cors()); // Permite acesso do Frontend
+
+// --- CONEXÃO COM O BANCO DE DADOS ---
 const connectionString = process.env.DATABASE_URL;
 
-// Verificação de segurança
+// Verificação de segurança para não rodar sem banco
 if (!connectionString) {
-  console.error("❌ ERRO: A variável DATABASE_URL não foi encontrada.");
-  console.error(
-    "👉 Certifique-se de ter criado o arquivo .env na raiz do projeto com a URL do banco."
-  );
+  console.error("❌ ERRO CRÍTICO: DATABASE_URL não encontrada no arquivo .env");
   process.exit(1);
 }
 
 const pool = new Pool({
   connectionString,
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: false }, // Obrigatório para Aiven/Render
 });
 
-// --- ROTA DE LOGIN ---
+// =======================================================
+// 1. ROTAS DE AUTENTICAÇÃO (LOGIN)
+// =======================================================
 app.post("/api/login", async (req, res) => {
   const { email, senha } = req.body;
-
   console.log("🕵️ Tentativa de Login:", email);
 
   try {
     const result = await pool.query("SELECT * FROM usuarios WHERE email = $1", [
       email,
     ]);
+
     if (result.rows.length > 0) {
       const user = result.rows[0];
-      // Comparação simples (para produção use bcrypt)
+      // Comparação de senha (com trim para evitar erros de espaço)
       if (String(user.senha).trim() === String(senha).trim()) {
-        delete user.senha;
+        delete user.senha; // Remove a senha antes de enviar
         return res.json({ sucesso: true, usuario: user });
       }
     }
-    res.status(401).json({ sucesso: false, mensagem: "Credenciais inválidas" });
+
+    res
+      .status(401)
+      .json({ sucesso: false, mensagem: "E-mail ou senha inválidos." });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: "Erro no servidor" });
+    console.error("Erro no login:", err);
+    res.status(500).json({ erro: "Erro interno no servidor" });
   }
 });
 
-// --- ROTA DE DASHBOARD ---
+// =======================================================
+// 2. ROTAS DE DASHBOARD
+// =======================================================
 app.get("/api/dashboard", async (req, res) => {
   try {
+    // Soma das contas pendentes e vencidas (anteriores a hoje)
     const result = await pool.query(
       "SELECT SUM(valor) as total FROM pagamentos WHERE status = 'Pendente' AND vencimento < CURRENT_DATE"
     );
-    res.json({ resumo: { vencidos: result.rows[0].total || 0 } });
+    res.json({
+      resumo: {
+        vencidos: Number(result.rows[0].total) || 0,
+      },
+    });
   } catch (err) {
-    res.status(500).json({ erro: "Erro dashboard" });
+    console.error("Erro dashboard:", err);
+    res.status(500).json({ erro: "Erro ao calcular dashboard" });
   }
 });
 
 // =======================================================
-// ROTAS DE PAGAMENTOS (CRUD)
+// 3. ROTAS DE TRANSAÇÕES (PAGAMENTOS)
 // =======================================================
 
-// 1. LISTAR TODAS AS TRANSAÇÕES
+// LISTAR
 app.get("/api/transactions", async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT * FROM pagamentos ORDER BY vencimento DESC"
     );
 
-    // Converte snake_case (banco) para camelCase (frontend)
+    // Mapeia do formato do Banco (snake_case) para o Frontend (camelCase)
     const formatado = result.rows.map((row) => ({
       id: row.id,
       description: row.descricao,
@@ -89,12 +99,12 @@ app.get("/api/transactions", async (req, res) => {
 
     res.json(formatado);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: "Erro ao listar" });
+    console.error("Erro ao listar transações:", err);
+    res.status(500).json({ erro: "Erro ao buscar dados" });
   }
 });
 
-// 2. ADICIONAR NOVA TRANSAÇÃO
+// ADICIONAR
 app.post("/api/transactions", async (req, res) => {
   const {
     description,
@@ -107,7 +117,7 @@ app.post("/api/transactions", async (req, res) => {
     date,
   } = req.body;
 
-  console.log("💰 Novo Pagamento:", description, amount);
+  console.log("💰 Nova Transação:", description, amount);
 
   try {
     const query = `
@@ -126,12 +136,13 @@ app.post("/api/transactions", async (req, res) => {
       installments,
       dueDate,
       date,
-      1, // ID do usuário fixo (admin)
+      1, // ID fixo do usuário (admin)
     ];
 
     const result = await pool.query(query, values);
-
     const row = result.rows[0];
+
+    // Retorna o objeto criado formatado
     res.json({
       id: row.id,
       description: row.descricao,
@@ -144,24 +155,94 @@ app.post("/api/transactions", async (req, res) => {
       date: row.data_pagamento,
     });
   } catch (err) {
-    console.error("Erro ao salvar:", err);
-    res.status(500).json({ erro: "Erro ao salvar pagamento" });
+    console.error("Erro ao salvar transação:", err);
+    res.status(500).json({ erro: "Falha ao salvar no banco de dados" });
   }
 });
 
-// 3. EXCLUIR TRANSAÇÃO
+// EXCLUIR
 app.delete("/api/transactions/:id", async (req, res) => {
   const { id } = req.params;
   try {
     await pool.query("DELETE FROM pagamentos WHERE id = $1", [id]);
     res.json({ sucesso: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: "Erro ao excluir" });
+    console.error("Erro ao excluir:", err);
+    res.status(500).json({ erro: "Falha ao excluir registro" });
   }
 });
 
-// --- INICIAR ---
+// =======================================================
+// 4. ROTAS DE CATEGORIAS (NOVO - INTEGRADO AO BANCO)
+// =======================================================
+
+// LISTAR CATEGORIAS
+app.get("/api/categories", async (req, res) => {
+  try {
+    // Busca categorias ordenadas por nome
+    const result = await pool.query(
+      "SELECT nome FROM categorias ORDER BY nome ASC"
+    );
+
+    // Se a tabela estiver vazia, retorna um array padrão para não quebrar o front
+    if (result.rows.length === 0) {
+      return res.json([
+        "Alimentação",
+        "Moradia",
+        "Transporte",
+        "Lazer",
+        "Saúde",
+      ]);
+    }
+
+    // Transforma o array de objetos [{nome: 'A'}, {nome: 'B'}] em array de strings ['A', 'B']
+    const lista = result.rows.map((row) => row.nome);
+    res.json(lista);
+  } catch (err) {
+    console.error("Erro categorias:", err);
+    // Fallback em caso de erro de banco (ex: tabela não existe)
+    res.json(["Alimentação", "Moradia", "Transporte"]);
+  }
+});
+
+// ADICIONAR CATEGORIA
+app.post("/api/categories", async (req, res) => {
+  const { category } = req.body;
+  try {
+    // Tenta inserir (se já existir, vai dar erro, então usamos o catch)
+    await pool.query("INSERT INTO categorias (nome) VALUES ($1)", [category]);
+
+    // Retorna a lista completa atualizada
+    const result = await pool.query(
+      "SELECT nome FROM categorias ORDER BY nome ASC"
+    );
+    res.json(result.rows.map((r) => r.nome));
+  } catch (err) {
+    console.error("Erro ao add categoria:", err);
+    res
+      .status(500)
+      .json({ error: "Erro ao adicionar categoria (provavelmente duplicada)" });
+  }
+});
+
+// REMOVER CATEGORIA
+app.delete("/api/categories/:name", async (req, res) => {
+  const { name } = req.params;
+  try {
+    await pool.query("DELETE FROM categorias WHERE nome = $1", [name]);
+
+    // Retorna a lista atualizada
+    const result = await pool.query(
+      "SELECT nome FROM categorias ORDER BY nome ASC"
+    );
+    res.json(result.rows.map((r) => r.nome));
+  } catch (err) {
+    console.error("Erro ao del categoria:", err);
+    res.status(500).json({ error: "Erro ao remover categoria" });
+  }
+});
+
+// --- INICIAR SERVIDOR ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🔥 Servidor Full Stack rodando na porta ${PORT}`);

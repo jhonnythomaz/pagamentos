@@ -83,29 +83,31 @@ export const addMultipleTransactions = async (
 // --- FUNÇÕES DE CATEGORIA E ORÇAMENTO (MOCKADAS NO FRONTEND) ---
 
 export const getCategories = async (): Promise<string[]> => {
-  return localCategories;
+  try {
+    const response = await fetch(`${API_URL}/categories`);
+    return handleResponse(response);
+  } catch (error) {
+    console.error("Erro ao buscar categorias:", error);
+    return ["Alimentação", "Moradia", "Outros"]; // Fallback se der erro
+  }
 };
 
 export const addCategory = async (category: string): Promise<string[]> => {
-  localCategories = [...localCategories, category];
-  return localCategories;
+  const response = await fetch(`${API_URL}/categories`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ category }),
+  });
+  return handleResponse(response);
 };
 
 export const deleteCategory = async (category: string): Promise<string[]> => {
-  localCategories = localCategories.filter((c) => c !== category);
-  return localCategories;
-};
-
-export const getBudget = async (): Promise<number> => {
-  return localBudget;
-};
-
-export const setBudget = async (amount: number): Promise<number> => {
-  localBudget = amount;
-  return localBudget;
-};
-
-// Inicializador (não precisamos fazer nada especial aqui pois o authService já cuida do usuário)
-export const initApi = (userId: number) => {
-  console.log("API Inicializada para o usuário:", userId);
+  // Passamos o nome na URL (encodeURIComponent protege se tiver espaços ou acentos)
+  const response = await fetch(
+    `${API_URL}/categories/${encodeURIComponent(category)}`,
+    {
+      method: "DELETE",
+    }
+  );
+  return handleResponse(response);
 };

@@ -1,42 +1,34 @@
-require("dotenv").config(); // Carrega o .env
+require("dotenv").config();
 const { Pool } = require("pg");
 
 const connectionString = process.env.DATABASE_URL;
+const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
 
-if (!connectionString) {
-  console.error("❌ ERRO: URL do banco não encontrada no .env");
-  process.exit(1);
-}
-
-const pool = new Pool({
-  connectionString,
-  ssl: { rejectUnauthorized: false },
-});
-
-async function updateTable() {
+async function update() {
   try {
-    console.log("⏳ Atualizando estrutura do banco...");
+    console.log("⏳ Criando tabela de categorias...");
 
-    // Apaga a tabela antiga
-    await pool.query("DROP TABLE IF EXISTS pagamentos");
-
-    // Cria a tabela nova completa
+    // 1. Cria a tabela se não existir
     await pool.query(`
-      CREATE TABLE pagamentos (
+      CREATE TABLE IF NOT EXISTS categorias (
         id SERIAL PRIMARY KEY,
-        descricao VARCHAR(255) NOT NULL,
-        valor NUMERIC(10, 2) NOT NULL,
-        categoria VARCHAR(100),
-        status VARCHAR(50),
-        tipo_conta VARCHAR(50), 
-        parcelas VARCHAR(20),
-        vencimento DATE NOT NULL,
-        data_pagamento DATE,
-        usuario_id INTEGER REFERENCES usuarios(id)
+        nome VARCHAR(100) UNIQUE NOT NULL
       );
     `);
 
-    console.log("✅ Tabela 'pagamentos' recriada com sucesso!");
+    // 2. Insere categorias padrão (apenas se a tabela estiver vazia)
+    const check = await pool.query("SELECT count(*) FROM categorias");
+    if (parseInt(check.rows[0].count) === 0) {
+      console.log("📥 Inserindo categorias padrão...");
+      await pool.query(`
+            INSERT INTO categorias (nome) VALUES 
+            ('Alimentação'), ('Moradia'), ('Transporte'), 
+            ('Lazer'), ('Saúde'), ('Educação'), 
+            ('Salário'), ('Investimentos')
+        `);
+    }
+
+    console.log("✅ Tabela 'categorias' pronta e populada!");
   } catch (err) {
     console.error("❌ Erro:", err);
   } finally {
@@ -44,4 +36,4 @@ async function updateTable() {
   }
 }
 
-updateTable();
+update();
