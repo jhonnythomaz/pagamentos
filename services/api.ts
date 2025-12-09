@@ -103,4 +103,6 @@ export const setBudget = async (amount: number): Promise<number> => {
 };
 
 // Inicializador vazio para compatibilidade
-export const initApi = (userId: number) => {};
+export const initApi = (userId: number) => {
+  console.log("Inicializando para o usuário:", userId); // Agora a variável é usada!
+};
