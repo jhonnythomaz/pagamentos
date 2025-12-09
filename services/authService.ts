@@ -47,4 +47,5 @@ const authService = {
   },
 };
 
+export { authService };
 export default authService;
