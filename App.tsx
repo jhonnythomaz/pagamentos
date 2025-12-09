@@ -91,11 +91,10 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    authService.logout(); // Limpa o storage
-    setUser(null); // O React detecta isso e mostra a tela de Login INSTANTANEAMENTE
-
-    // Limpa a URL para ficar bonita (apenas visual, sem recarregar)
-    window.history.pushState({}, "", "/");
+    authService.logout(); // Limpa o localStorage
+    setUser(null); // Diz pro React: "Não tem mais usuário, mostre o Login"
+    // Opcional: Garante que a URL é a raiz sem recarregar a página
+    window.history.replaceState(null, "", "/");
   };
 
   const fetchData = async () => {

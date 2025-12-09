@@ -7,13 +7,12 @@ export interface User {
   nome?: string;
 }
 
-// AQUI ESTÁ A CORREÇÃO: Usa a URL da Vercel ou Localhost dependendo de onde está rodando
+// URL da API (Render)
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const authService = {
   async login(email: string, senha: string): Promise<User> {
     try {
-      // Agora ele usa a variável API_URL, não mais o localhost fixo
       const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
@@ -37,6 +36,7 @@ const authService = {
   },
 
   logout() {
+    // APENAS LIMPA OS DADOS. NÃO REDIRECIONA.
     localStorage.removeItem("user");
   },
 
