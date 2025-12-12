@@ -20,8 +20,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// --- AUTO-SETUP: GARANTE QUE A TABELA CATEGORIAS EXISTA ---
-// Isso roda toda vez que o servidor inicia. Se a tabela não existir, ele cria.
+// --- AUTO-SETUP: TABELAS ---
 pool
   .query(
     `
@@ -33,25 +32,20 @@ pool
   )
   .then(async () => {
     console.log("✅ Tabela de categorias verificada.");
-
-    // Se estiver vazia, insere as padrões
     const check = await pool.query("SELECT count(*) FROM categorias");
     if (parseInt(check.rows[0].count) === 0) {
-      console.log("📥 Inserindo categorias padrão...");
-      await pool.query(`
-          INSERT INTO categorias (nome) VALUES 
-          ('Alimentação'), ('Moradia'), ('Transporte'), 
-          ('Lazer'), ('Saúde'), ('Educação'), 
-          ('Salário'), ('Investimentos')
-      `);
+      await pool.query(
+        `INSERT INTO categorias (nome) VALUES ('Alimentação'), ('Moradia'), ('Lazer'), ('Saúde'), ('Salário')`
+      );
     }
   })
-  .catch((err) => console.error("Erro ao criar tabela categorias:", err));
+  .catch((err) => console.error(err));
 
 // =======================================================
-// ROTAS (LOGIN, DASHBOARD, TRANSAÇÕES, CATEGORIAS)
+// ROTAS API
 // =======================================================
 
+// LOGIN
 app.post("/api/login", async (req, res) => {
   const { email, senha } = req.body;
   try {
@@ -69,11 +63,11 @@ app.post("/api/login", async (req, res) => {
       .status(401)
       .json({ sucesso: false, mensagem: "Credenciais inválidas." });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: "Erro no servidor" });
+    res.status(500).json({ erro: "Erro servidor" });
   }
 });
 
+// DASHBOARD
 app.get("/api/dashboard", async (req, res) => {
   try {
     const result = await pool.query(
@@ -85,6 +79,9 @@ app.get("/api/dashboard", async (req, res) => {
   }
 });
 
+// --- TRANSAÇÕES ---
+
+// LISTAR
 app.get("/api/transactions", async (req, res) => {
   try {
     const result = await pool.query(
@@ -103,10 +100,11 @@ app.get("/api/transactions", async (req, res) => {
     }));
     res.json(formatado);
   } catch (err) {
-    res.status(500).json({ erro: "Erro ao buscar transações" });
+    res.status(500).json({ erro: "Erro ao listar" });
   }
 });
 
+// ADICIONAR
 app.post("/api/transactions", async (req, res) => {
   const {
     description,
@@ -135,13 +133,83 @@ app.post("/api/transactions", async (req, res) => {
       1,
     ];
     const result = await pool.query(query, values);
-    res.json({ ...result.rows[0], amount: Number(result.rows[0].valor) }); // Ajuste rápido para retorno
+
+    // Formata o retorno para o front
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      description: row.descricao,
+      amount: Number(row.valor),
+      category: row.categoria,
+      status: row.status,
+      accountType: row.tipo_conta,
+      installments: row.parcelas,
+      dueDate: row.vencimento,
+      date: row.data_pagamento,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: "Erro ao salvar" });
   }
 });
 
+// [NOVO] ATUALIZAR (PUT)
+app.put("/api/transactions/:id", async (req, res) => {
+  const { id } = req.params;
+  const {
+    description,
+    amount,
+    category,
+    status,
+    accountType,
+    installments,
+    dueDate,
+    date,
+  } = req.body;
+
+  try {
+    const query = `
+      UPDATE pagamentos 
+      SET descricao = $1, valor = $2, categoria = $3, status = $4, tipo_conta = $5, parcelas = $6, vencimento = $7, data_pagamento = $8
+      WHERE id = $9
+      RETURNING *
+    `;
+    const values = [
+      description,
+      amount,
+      category,
+      status,
+      accountType,
+      installments,
+      dueDate,
+      date,
+      id,
+    ];
+
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0)
+      return res.status(404).json({ error: "Não encontrado" });
+
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      description: row.descricao,
+      amount: Number(row.valor),
+      category: row.categoria,
+      status: row.status,
+      accountType: row.tipo_conta,
+      installments: row.parcelas,
+      dueDate: row.vencimento,
+      date: row.data_pagamento,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: "Erro ao atualizar" });
+  }
+});
+
+// EXCLUIR
 app.delete("/api/transactions/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -162,8 +230,7 @@ app.get("/api/categories", async (req, res) => {
     if (result.rows.length === 0) return res.json(["Alimentação", "Moradia"]);
     res.json(result.rows.map((row) => row.nome));
   } catch (err) {
-    console.error(err);
-    res.json(["Alimentação", "Moradia"]); // Fallback
+    res.json(["Alimentação", "Moradia"]);
   }
 });
 

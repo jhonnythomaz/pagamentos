@@ -1,22 +1,19 @@
 import { Transaction, NewTransaction } from "../types";
 
-// Define a URL da API (Render ou Localhost)
+// URL da API
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-// Função auxiliar de resposta
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
-      errorData.mensagem ||
-        errorData.erro ||
-        "Erro na comunicação com o servidor"
+      errorData.mensagem || errorData.erro || "Erro na comunicação"
     );
   }
   return response.json();
 };
 
-// --- TRANSAÇÕES (BANCO DE DADOS) ---
+// --- TRANSAÇÕES ---
 
 export const getTransactions = async (): Promise<Transaction[]> => {
   try {
@@ -39,11 +36,16 @@ export const addTransaction = async (
   return handleResponse(response);
 };
 
+// [CORREÇÃO AQUI] Agora usamos o método PUT para atualizar no banco
 export const updateTransaction = async (
   transaction: Transaction
 ): Promise<Transaction> => {
-  // Backend ainda não tem PUT, retornamos o objeto para atualizar a tela
-  return transaction;
+  const response = await fetch(`${API_URL}/transactions/${transaction.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(transaction),
+  });
+  return handleResponse(response);
 };
 
 export const deleteTransaction = async (id: string): Promise<void> => {
@@ -59,14 +61,14 @@ export const addMultipleTransactions = async (
   return Promise.all(promises);
 };
 
-// --- CATEGORIAS (BANCO DE DADOS) ---
+// --- CATEGORIAS ---
 
 export const getCategories = async (): Promise<string[]> => {
   try {
     const response = await fetch(`${API_URL}/categories`);
     return handleResponse(response);
   } catch (error) {
-    return ["Alimentação", "Moradia", "Lazer"]; // Fallback
+    return ["Alimentação", "Moradia", "Lazer"];
   }
 };
 
@@ -89,8 +91,7 @@ export const deleteCategory = async (category: string): Promise<string[]> => {
   return handleResponse(response);
 };
 
-// --- ORÇAMENTO (LOCAL STORAGE - MOCK) ---
-// Restauramos essas funções para o App.tsx não quebrar
+// --- ORÇAMENTO (MOCK Local) ---
 
 export const getBudget = async (): Promise<number> => {
   const saved = localStorage.getItem("user_budget");
@@ -102,7 +103,6 @@ export const setBudget = async (amount: number): Promise<number> => {
   return amount;
 };
 
-// Inicializador vazio para compatibilidade
 export const initApi = (userId: number) => {
-  console.log("Inicializando para o usuário:", userId); // Agora a variável é usada!
+  console.log("API Inicializada para user:", userId);
 };
